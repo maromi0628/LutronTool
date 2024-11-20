@@ -1,9 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35506.116 d17.12
+VisualStudioVersion = 17.12.35506.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoomKeypadManager", "RoomKeypadManager.csproj", "{E5AFE0CA-0071-48C5-BA28-0EEE17063452}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ソリューション項目", "ソリューション項目", "{3F8F6A16-0CFB-44EF-AD79-082BD69ABD26}"
+	ProjectSection(SolutionItems) = preProject
+		Class1.cs = Class1.cs
+		Class2.cs = Class2.cs
+		Class3.cs = Class3.cs
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
