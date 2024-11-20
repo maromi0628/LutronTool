@@ -158,10 +158,14 @@ namespace RoomKeypadManager
 
             foreach (var device in structuredData[roomKey])
             {
+                // ボタン情報をカンマ区切りで表示
                 string buttonInfo = string.Join(", ", device.Buttons);
                 deviceTable.Rows.Add(device.DeviceName, device.Model, device.ID, buttonInfo);
             }
         }
+
+
+
 
         private void DebugButton_Click(object sender, EventArgs e)
         {
