@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ソリューション項目
 		Class1.cs = Class1.cs
 		Class2.cs = Class2.cs
 		Class3.cs = Class3.cs
+		Class4.cs = Class4.cs
 	EndProjectSection
 EndProject
 Global
