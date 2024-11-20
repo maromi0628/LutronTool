@@ -6,28 +6,19 @@ namespace RoomKeypadManager
 {
     public class Keypad : Panel
     {
-        private int type;
-        private List<Button> buttons;
         private const int ButtonHeight = 50;
         private const int ButtonSpacing = 10;
 
-        public Keypad(int type)
+        public Keypad(int buttonCount, List<string> buttonNames)
         {
-            this.type = type;
-            this.InitializeKeypad();
-        }
-
-        private void InitializeKeypad()
-        {
-            this.Size = new Size(150, (ButtonHeight + ButtonSpacing) * type);
+            this.Size = new Size(150, (ButtonHeight + ButtonSpacing) * buttonCount);
             this.BackColor = Color.LightGray;
-            buttons = new List<Button>();
 
-            for (int i = 0; i < type; i++)
+            for (int i = 0; i < buttonCount; i++)
             {
                 Button button = new Button
                 {
-                    Text = $"Button {i + 1}",
+                    Text = i < buttonNames.Count ? buttonNames[i] : $"Button {i + 1}",
                     Height = ButtonHeight,
                     Width = 120,
                     Top = i * (ButtonHeight + ButtonSpacing),
@@ -35,7 +26,6 @@ namespace RoomKeypadManager
                     BackColor = Color.LightBlue
                 };
                 button.Click += (sender, e) => ToggleButton((Button)sender);
-                buttons.Add(button);
                 this.Controls.Add(button);
             }
         }
