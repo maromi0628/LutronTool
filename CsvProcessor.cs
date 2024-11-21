@@ -52,7 +52,8 @@ namespace RoomKeypadManager
 
                                 if (existingDevice != null)
                                 {
-                                    existingDevice.Buttons.Add(fColumn);
+                                    existingDevice.Buttons.Add(fColumn); // ボタン名を追加
+                                    existingDevice.DColumns.Add(dColumn); // D列の情報を追加
                                 }
                             }
                         }
@@ -77,9 +78,12 @@ namespace RoomKeypadManager
 
                     // ボタン情報を取得
                     List<string> buttons = new List<string>();
-                    if (dColumn.Contains("Button"))
+                    List<string> dColumns = new List<string>();
+
+                    if (dColumn.Contains("Button") && !string.IsNullOrWhiteSpace(fColumn))
                     {
-                        buttons.Add(fColumn);
+                        buttons.Add(fColumn); // F列のボタン名
+                        dColumns.Add(dColumn); // D列の情報
                     }
 
                     if (!structuredData.ContainsKey(roomKey))
@@ -87,35 +91,25 @@ namespace RoomKeypadManager
                         structuredData[roomKey] = new List<DeviceData>();
                     }
 
-                    // デバイス名に番号を付ける
-                    string uniqueDeviceName = deviceName;
-                    if (!deviceNameCounter.ContainsKey(deviceName))
-                    {
-                        deviceNameCounter[deviceName] = 1;
-                    }
-                    else
-                    {
-                        deviceNameCounter[deviceName]++;
-                        uniqueDeviceName = $"{deviceName}({deviceNameCounter[deviceName]})";
-                    }
-
                     // 新しいデバイスを追加
                     structuredData[roomKey].Add(new DeviceData
                     {
-                        DeviceName = uniqueDeviceName,
+                        DeviceName = deviceName,
                         Model = model,
                         ID = id,
-                        Buttons = buttons
+                        Buttons = buttons,
+                        DColumns = dColumns // D列の情報を追加
                     });
 
                     // 現在のデバイス情報を保持
                     lastRoomKey = roomKey;
-                    lastDeviceName = uniqueDeviceName;
+                    lastDeviceName = deviceName;
                     lastDeviceID = id;
                 }
             }
 
             return structuredData;
         }
+
     }
 }
