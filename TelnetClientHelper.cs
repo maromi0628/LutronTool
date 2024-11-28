@@ -5,7 +5,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using RoomKeypadManager; // DeviceData クラスが移動した場合の名前空間
+using RoomKeypadManager; // MainForm の名前空間
+
+
 
 public class TelnetClientHelper
 {
@@ -14,8 +16,27 @@ public class TelnetClientHelper
     private StreamReader reader;
     private StreamWriter writer;
 
-    // レスポンスバッファ
     private StringBuilder responseBuffer = new StringBuilder();
+
+    // structuredDataを管理
+    private Dictionary<string, List<DeviceData>> structuredData;
+
+    private bool isListening = false; // リスニング状態の管理
+
+    public TelnetClientHelper(Dictionary<string, List<DeviceData>> structuredData)
+    {
+        this.structuredData = structuredData;
+    }
+
+    private MainForm mainFormInstance;
+
+    public TelnetClientHelper(MainForm mainForm, Dictionary<string, List<DeviceData>> structuredData)
+    {
+        this.mainFormInstance = mainForm;
+        this.structuredData = structuredData;
+    }
+
+
 
     public void InitializeStream(NetworkStream stream)
     {
@@ -24,7 +45,6 @@ public class TelnetClientHelper
         writer = new StreamWriter(networkStream, Encoding.ASCII) { AutoFlush = true };
     }
 
-    // ログイン処理
     public async Task<bool> LoginAsync(string username, string password)
     {
         if (reader == null || writer == null)
@@ -34,17 +54,13 @@ public class TelnetClientHelper
 
         try
         {
-            // "login:" プロンプト処理
             await ReadToBufferAsync();
             await WriteCommandAsync(username);
 
-            // "password:" プロンプト処理
             await ReadToBufferAsync();
             await WriteCommandAsync(password);
 
-            // ログイン完了後のプロンプトを処理
             await ReadToBufferAsync();
-
             return true;
         }
         catch (Exception ex)
@@ -54,7 +70,6 @@ public class TelnetClientHelper
         }
     }
 
-    // コマンドを送信してレスポンスを取得する
     public async Task<string> SendCommandAsync(string command)
     {
         if (writer == null || reader == null)
@@ -64,11 +79,8 @@ public class TelnetClientHelper
 
         try
         {
-            // コマンドを送信
             await WriteCommandAsync(command);
-
-            // レスポンスを取得
-            return await ReadToBufferAsync();
+            return string.Empty; // レスポンスを取得しない
         }
         catch (Exception ex)
         {
@@ -76,30 +88,6 @@ public class TelnetClientHelper
             throw;
         }
     }
-
-    private async Task<string> ReadToBufferAsync()
-    {
-        char[] buffer = new char[1024];
-
-        while (true)
-        {
-            int bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length);
-            if (bytesRead == 0)
-            {
-                throw new IOException("接続が切断されました。");
-            }
-
-            lock (responseBuffer)
-            {
-                responseBuffer.Append(buffer, 0, bytesRead);
-                Console.WriteLine($"[DEBUG] バッファ追加内容: {new string(buffer, 0, bytesRead)}");
-                Console.WriteLine($"[DEBUG] 現在のレスポンスバッファ: {responseBuffer}");
-            }
-
-            return responseBuffer.ToString();
-        }
-    }
-
 
     public void ProcessResponseBuffer(Action<string> logAction)
     {
@@ -122,45 +110,88 @@ public class TelnetClientHelper
                 if (!string.IsNullOrWhiteSpace(message))
                 {
                     logAction?.Invoke($"[レスポンス電文] {message}");
+                    HandleResponseMessage(message, logAction); // 電文処理
                 }
             }
         }
     }
 
-    private async Task WriteCommandAsync(string command)
+    private void HandleResponseMessage(string message, Action<string> logAction)
     {
-        await writer.WriteLineAsync(command);
+        Regex regexBacklight = new Regex(@"~DEVICE,(\d+),89,(36|37),(\d+)");
+        Match matchBacklight = regexBacklight.Match(message);
+        if (matchBacklight.Success)
+        {
+            string id = matchBacklight.Groups[1].Value;
+            string type = matchBacklight.Groups[2].Value;
+            int brightness = int.Parse(matchBacklight.Groups[3].Value);
+
+            foreach (var roomKey in structuredData.Keys)
+            {
+                var device = structuredData[roomKey].FirstOrDefault(d => d.ID == id);
+                if (device != null)
+                {
+                    if (type == "36")
+                    {
+                        device.ActiveBrightness = brightness;
+                    }
+                    else if (type == "37")
+                    {
+                        device.InactiveBrightness = brightness;
+                    }
+
+                    logAction?.Invoke($"[DEBUG] ID: {id} の現在の照度を更新しました。");
+                    return;
+                }
+            }
+        }
+
+        Regex regexButtonState = new Regex(@"~DEVICE,(\d+),8(\d),9,(0|1)");
+        Match matchButtonState = regexButtonState.Match(message);
+        if (matchButtonState.Success)
+        {
+            string id = matchButtonState.Groups[1].Value;
+            int buttonIndex = int.Parse(matchButtonState.Groups[2].Value);
+            bool isActive = matchButtonState.Groups[3].Value == "1";
+
+            foreach (var roomKey in structuredData.Keys)
+            {
+                var device = structuredData[roomKey].FirstOrDefault(d => d.ID == id);
+                if (device != null)
+                {
+                    device.SetButtonState(buttonIndex, isActive);
+                    logAction?.Invoke($"[INFO] ID: {id}, ボタン: {buttonIndex}, 状態: {(isActive ? "アクティブ" : "インアクティブ")}");
+                    return;
+                }
+            }
+        }
     }
 
-    private bool isListening = false; // リスニング状態の管理
 
     public void StartListening()
     {
-        if (string.IsNullOrWhiteSpace(deviceId))
+        if (isListening)
         {
-            throw new ArgumentException("デバイスIDが無効です。");
+            Console.WriteLine("[DEBUG] すでにリスニング中です。");
+            return;
         }
 
-        string command = isActive
-            ? $"?DEVICE,{deviceId},89,36" // アクティブ状態
-            : $"?DEVICE,{deviceId},89,37"; // インアクティブ状態
+        isListening = true;
 
         Task.Run(async () =>
         {
             try
             {
-                char[] buffer = new char[1024]; // 一度に読み取るバッファサイズ
+                char[] buffer = new char[1024];
 
                 while (isListening)
                 {
                     int bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length);
                     if (bytesRead > 0)
                     {
-                        lock (responseBuffer) // スレッドセーフに操作
+                        lock (responseBuffer)
                         {
                             responseBuffer.Append(buffer, 0, bytesRead);
-                            Console.WriteLine($"[DEBUG] 受信データ: {new string(buffer, 0, bytesRead)}");
-                            Console.WriteLine($"[DEBUG] 現在のレスポンスバッファ: {responseBuffer}");
                         }
                     }
                 }
@@ -173,34 +204,12 @@ public class TelnetClientHelper
         });
     }
 
-        Console.WriteLine($"レスポンスの解析に失敗しました: {response}");
-        return -1; // エラー値
-    }
-
-
-    public async Task SendBacklightBrightnessCommandsForKeypads(
-        Dictionary<string, List<DeviceData>> structuredData, Action<string> logAction)
+    public void StopListening()
     {
-        var result = new Dictionary<string, (int Active, int Inactive)>();
-
-        foreach (var roomKey in structuredData.Keys)
-        {
-            foreach (var device in structuredData[roomKey])
-            {
-                if (!string.IsNullOrWhiteSpace(device.ID) &&
-                    (device.Model.StartsWith("MWP-U") || device.Model.StartsWith("MWP-B")))
-                {
-                    int activeBrightness = await GetBacklightBrightnessAsync(device.ID, true);
-                    int inactiveBrightness = await GetBacklightBrightnessAsync(device.ID, false);
-                    result[device.DeviceName] = (activeBrightness, inactiveBrightness);
-                }
-            }
-        }
-
-        return result;
+        isListening = false;
+        Console.WriteLine("[DEBUG] リスニングを停止しました。");
     }
 
-    // 接続を閉じる
     public void Close()
     {
         try
@@ -213,6 +222,70 @@ public class TelnetClientHelper
         catch (Exception ex)
         {
             Console.WriteLine($"Telnet切断エラー: {ex.Message}");
+        }
+    }
+
+    private async Task WriteCommandAsync(string command)
+    {
+        await writer.WriteLineAsync(command);
+    }
+
+    private async Task<string> ReadToBufferAsync()
+    {
+        char[] buffer = new char[1024];
+
+        while (true)
+        {
+            int bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length);
+            if (bytesRead == 0)
+            {
+                throw new IOException("接続が切断されました。");
+            }
+
+            lock (responseBuffer)
+            {
+                responseBuffer.Append(buffer, 0, bytesRead);
+            }
+
+            return responseBuffer.ToString();
+        }
+    }
+
+    public async Task SendBacklightBrightnessCommandsForKeypads(
+    Dictionary<string, List<DeviceData>> structuredData, Action<string> logAction)
+    {
+        foreach (var roomKey in structuredData.Keys)
+        {
+            foreach (var device in structuredData[roomKey])
+            {
+                if (!string.IsNullOrWhiteSpace(device.ID) &&
+                    (device.Model.StartsWith("MWP-U") || device.Model.StartsWith("MWP-B")))
+                {
+                    string activeCommand = $"?DEVICE,{device.ID},89,36";
+                    string inactiveCommand = $"?DEVICE,{device.ID},89,37";
+
+                    logAction?.Invoke($"[送信コマンド] {activeCommand}");
+                    await SendCommandAsync(activeCommand);
+
+                    logAction?.Invoke($"[送信コマンド] {inactiveCommand}");
+                    await SendCommandAsync(inactiveCommand);
+
+                    // ボタン状態確認コマンドの送信
+                    int buttonCount = device.Buttons.Count; // ボタンの数を取得
+                    await SendButtonStateCheckCommands(device.ID, buttonCount, logAction);
+                }
+            }
+        }
+    }
+
+
+    public async Task SendButtonStateCheckCommands(string deviceID, int buttonCount, Action<string> logAction)
+    {
+        for (int i = 1; i <= buttonCount; i++)
+        {
+            string command = $"?DEVICE,{deviceID},8{i},9";
+            logAction?.Invoke($"[送信コマンド] {command}");
+            await SendCommandAsync(command);
         }
     }
 

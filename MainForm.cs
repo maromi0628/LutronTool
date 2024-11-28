@@ -10,37 +10,30 @@ namespace RoomKeypadManager
     public partial class MainForm : Form
     {
         private Dictionary<string, List<DeviceData>> structuredData;
+        private Dictionary<string, Dictionary<string, string>> additionalData; // 追加データ用
         private ComboBox roomKeySelector;
         private DataGridView deviceTable;
         private Panel debugPanel;
         private ListBox logListBox;
         private TelnetClientHelper telnetClientHelper = null;
-        private bool isConnected = false; // 接続状態を管理
+        private bool isConnected = false;
 
-        private Dictionary<string, Keypad> keypadMap = new Dictionary<string, Keypad>(); // デバイスIDをキーとしてキーパッドを保持
-
-        
-
-        /// <summary>
-        /// キーパッドをマップに追加します。
-        /// </summary>
-        /// <param name="deviceID">デバイスID</param>
-        /// <param name="keypad">キーパッドインスタンス</param>
-        public void AddKeypad(string deviceID, Keypad keypad)
-        {
-            if (!keypadMap.ContainsKey(deviceID))
-            {
-                keypadMap[deviceID] = keypad;
-            }
-        }
 
         public MainForm()
         {
             InitializeComponent();
+            InitializeResponseProcessing();
 
             if (SelectCsvFile(out string filePath))
             {
-                structuredData = CsvProcessor.ProcessCsvFile(filePath);
+                //var result = CsvProcessor.ProcessCsvFile(filePath);
+                //structuredData = result.Item1;
+                //additionalData = result.Item2;
+                (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(filePath);
+
+                // structuredDataを渡してTelnetClientHelperを初期化
+                telnetClientHelper = new TelnetClientHelper(structuredData);
+
                 InitializeUI();
             }
             else
@@ -48,29 +41,58 @@ namespace RoomKeypadManager
                 MessageBox.Show("CSVファイルが選択されませんでした。アプリを終了します。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 this.Close();
             }
+
+            // Lighting Status タブを初期化
+            InitializeLightingStatusTab();
+
         }
+
+
 
         private System.Windows.Forms.Timer responseProcessingTimer;
 
         private void InitializeResponseProcessing()
         {
-            // タイマーを設定
             responseProcessingTimer = new System.Windows.Forms.Timer
             {
-                Interval = 1000 // 1秒ごとにレスポンスを処理
+                Interval = 50
             };
 
             responseProcessingTimer.Tick += (sender, e) =>
             {
                 if (telnetClientHelper != null && isConnected)
                 {
-                    // レスポンスバッファを処理
                     telnetClientHelper.ProcessResponseBuffer(AddLogEntry);
                 }
             };
 
             responseProcessingTimer.Start();
         }
+
+        private void LogKeypadStates()
+        {
+            foreach (var room in structuredData.Keys)
+            {
+                AddLogEntry($"[INFO] 部屋: {room}");
+                foreach (var device in structuredData[room])
+                {
+                    AddLogEntry($"[INFO] デバイス: {device.DeviceName}, ID: {device.ID}");
+
+                    foreach (var buttonIndex in Enumerable.Range(1, device.Buttons.Count))
+                    {
+                        bool? buttonState = device.GetButtonState(buttonIndex);
+                        string stateText = buttonState.HasValue
+                            ? (buttonState.Value ? "アクティブ" : "インアクティブ")
+                            : "状態不明";
+
+                        AddLogEntry($"  ボタン: {device.Buttons[buttonIndex - 1]} (Index: {buttonIndex}), 状態: {stateText}");
+                    }
+
+                    AddLogEntry($"[DEBUG] 全ボタン状態: {device.GetButtonStatesAsString()}");
+                }
+            }
+        }
+
 
 
 
@@ -79,12 +101,149 @@ namespace RoomKeypadManager
             this.Text = "Room Keypad Manager";
             this.WindowState = FormWindowState.Maximized;
 
+            // タブコントロールの作成
+            TabControl tabControl = new TabControl
+            {
+                Dock = DockStyle.Fill
+            };
+
+            // 1つ目のタブ: Room Keypad Manager
+            TabPage roomKeypadTab = new TabPage("Room Keypad Manager")
+            {
+                BackColor = Color.White
+            };
+
+            // 2つ目のタブ: 照明のステータス画面（空白）
+            TabPage lightingStatusTab = new TabPage("Lighting Status")
+            {
+                BackColor = Color.White
+            };
+
+            // 1つ目のタブに現在のUIを配置
+            InitializeRoomKeypadManagerTab(roomKeypadTab);
+
+            // 2つ目のタブは空白の状態で設定
+            //InitializeLightingStatusTab(lightingStatusTab);
+
+            // タブコントロールにタブを追加
+            tabControl.TabPages.Add(roomKeypadTab);
+            tabControl.TabPages.Add(lightingStatusTab);
+
+            // メインフォームにタブコントロールを追加
+            this.Controls.Clear(); // 他のコントロールを削除してリセット
+            this.Controls.Add(tabControl); // タブコントロールをメインに追加
+        }
+
+        private void InitializeLightingStatusTab()
+        {
+            // TabControl を取得
+            var tabControl = (TabControl)this.Controls[0];
+
+            // "Lighting Status" タブが既に存在するか確認し、あれば削除
+            var existingTab = tabControl.TabPages.Cast<TabPage>().FirstOrDefault(tab => tab.Text == "Lighting Status");
+            if (existingTab != null)
+            {
+                tabControl.TabPages.Remove(existingTab);
+            }
+
+            TabPage lightingStatusTab = new TabPage("Lighting Status")
+            {
+                BackColor = Color.White
+            };
+
+            if (additionalData == null || additionalData.Count == 0)
+            {
+                Label placeholder = new Label
+                {
+                    Text = "照明のステータスデータがありません。",
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font(FontFamily.GenericSansSerif, 16, FontStyle.Bold)
+                };
+
+                lightingStatusTab.Controls.Add(placeholder);
+            }
+            else
+            {
+                // スクロール可能な Panel を作成
+                Panel scrollablePanel = new Panel
+                {
+                    Dock = DockStyle.Fill,
+                    AutoScroll = true, // スクロールを有効化
+                    BackColor = Color.White
+                };
+
+                TableLayoutPanel lightingTable = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Top,
+                    ColumnCount = 2,
+                    AutoSize = true, // 自動サイズ設定
+                    Padding = new Padding(10),
+                    BackColor = Color.White
+                };
+
+                lightingTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+                lightingTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+                foreach (var section in additionalData.Keys)
+                {
+                    Label sectionLabel = new Label
+                    {
+                        Text = section,
+                        AutoSize = true,
+                        Font = new Font(FontFamily.GenericSansSerif, 14, FontStyle.Bold),
+                        Margin = new Padding(10, 20, 10, 5),
+                        TextAlign = ContentAlignment.MiddleLeft
+                    };
+
+                    lightingTable.Controls.Add(sectionLabel);
+                    lightingTable.SetColumnSpan(sectionLabel, 2);
+
+                    foreach (var item in additionalData[section])
+                    {
+                        Label keyLabel = new Label
+                        {
+                            Text = item.Key,
+                            AutoSize = true,
+                            Font = new Font(FontFamily.GenericSansSerif, 12),
+                            Margin = new Padding(5)
+                        };
+
+                        Label valueLabel = new Label
+                        {
+                            Text = item.Value,
+                            AutoSize = true,
+                            Font = new Font(FontFamily.GenericSansSerif, 12),
+                            Margin = new Padding(5)
+                        };
+
+                        lightingTable.Controls.Add(keyLabel);
+                        lightingTable.Controls.Add(valueLabel);
+                    }
+                }
+
+                // TableLayoutPanel をスクロール可能な Panel に追加
+                scrollablePanel.Controls.Add(lightingTable);
+
+                // スクロール可能 Panel を TabPage に追加
+                lightingStatusTab.Controls.Add(scrollablePanel);
+            }
+
+            // TabPage を追加
+            tabControl.TabPages.Add(lightingStatusTab);
+        }
+
+
+
+
+        private void InitializeRoomKeypadManagerTab(TabPage roomKeypadTab)
+        {
             // SplitContainerで画面を左右に分割
             SplitContainer mainSplitContainer = new SplitContainer
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                SplitterDistance = (int)(this.Width * 0.7), // 左側70%を指定
+                SplitterDistance = (int)(this.Width * 0.7),
                 FixedPanel = FixedPanel.None
             };
 
@@ -159,11 +318,10 @@ namespace RoomKeypadManager
             leftLayout.Controls.Add(createDebugEnvironmentButton, 0, 1);
 
             // Telnet接続用エリア
-            // Telnet接続用エリア
             TableLayoutPanel telnetLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 6, // ボタンが増えるので6列に設定
+                ColumnCount = 7,
                 RowCount = 1,
                 Padding = new Padding(10)
             };
@@ -173,6 +331,7 @@ namespace RoomKeypadManager
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET DAYボタン
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET NIGHTボタン
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));   // ステータスラベル
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // 状態確認ボタン
 
             // IP入力フィールド
             TextBox ipAddressTextBox = new TextBox
@@ -226,80 +385,28 @@ namespace RoomKeypadManager
             // 接続ステータスラベル
             Label connectionStatusLabel = new Label
             {
-                Text = "非接続中", // 初期状態
+                Text = "非接続中",
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Fill,
                 AutoSize = true,
                 Margin = new Padding(5),
-                ForeColor = Color.Red // 非接続中の文字色
+                ForeColor = Color.Red
             };
             telnetLayout.Controls.Add(connectionStatusLabel, 5, 0);
 
-            // ボタンのクリックイベント
-            connectTelnetButton.Click += async (sender, e) =>
+            // 状態確認ボタン
+            Button checkStateButton = new Button
             {
-                try
-                {
-                    if (isConnected)
-                    {
-                        telnetClientHelper?.Close();
-                        isConnected = false;
-                        connectionStatusLabel.Text = "非接続中";
-                        connectionStatusLabel.ForeColor = Color.Red;
-                        connectTelnetButton.Text = "Telnet接続";
-                        AddLogEntry("Telnet接続を解除しました。");
-                        return;
-                    }
+                Text = "状態確認",
+                Dock = DockStyle.Fill,
+                Margin = new Padding(5),
+                Height = 30
+            };
+            telnetLayout.Controls.Add(checkStateButton, 6, 0);
 
-                    string ipAddress = ipAddressTextBox.Text.Trim();
-                    string username = "x1s";
-                    string password = "x1s";
-
-                    if (string.IsNullOrWhiteSpace(ipAddress))
-                    {
-                        MessageBox.Show("IPアドレスを入力してください。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
-                    connectionStatusLabel.Text = "接続中...";
-                    connectionStatusLabel.ForeColor = Color.Blue;
-
-                    telnetClientHelper = new TelnetClientHelper();
-
-                    // Telnet接続を試みる
-                    TcpClient tcpClient = new TcpClient();
-                    await tcpClient.ConnectAsync(ipAddress, 23);
-                    NetworkStream stream = tcpClient.GetStream();
-                    telnetClientHelper.InitializeStream(stream);
-
-                    // ログイン処理
-                    bool loginSuccess = await telnetClientHelper.LoginAsync(username, password);
-                    if (loginSuccess)
-                    {
-                        isConnected = true;
-                        connectionStatusLabel.Text = "接続中";
-                        connectionStatusLabel.ForeColor = Color.Green;
-                        connectTelnetButton.Text = "Telnet接続解除";
-                        AddLogEntry($"Telnet接続およびログインに成功しました: {ipAddress}");
-
-                        // バックライト照度を取得
-                        var backlightResults = await telnetClientHelper.GetBacklightBrightnessForKeypads(structuredData);
-                        foreach (var result in backlightResults)
-                        {
-                            AddLogEntry($"デバイス: {result.Key}, アクティブ照度: {result.Value.Active}, インアクティブ照度: {result.Value.Inactive}");
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("ログインに失敗しました。");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    connectionStatusLabel.Text = "非接続中";
-                    connectionStatusLabel.ForeColor = Color.Red;
-                    AddLogEntry($"エラー: {ex.Message}");
-                }
+            checkStateButton.Click += (sender, e) =>
+            {
+                LogKeypadStates(); // キーパッドの状態をログに出力
             };
 
             getTimeButton.Click += async (sender, e) =>
@@ -309,9 +416,9 @@ namespace RoomKeypadManager
                     try
                     {
                         string getTimeCommand = "GETTIME";
-                        string response = await telnetClientHelper.SendCommandAsync(getTimeCommand);
+                        await telnetClientHelper.SendCommandAsync(getTimeCommand);
                         AddLogEntry($"送信: {getTimeCommand}");
-                        AddLogEntry($"応答: {response}");
+                        //AddLogEntry($"応答: {response}");
                     }
                     catch (Exception ex)
                     {
@@ -331,9 +438,9 @@ namespace RoomKeypadManager
                     try
                     {
                         string setDayCommand = "SETTIME,9";
-                        string response = await telnetClientHelper.SendCommandAsync(setDayCommand);
+                        await telnetClientHelper.SendCommandAsync(setDayCommand);
                         AddLogEntry($"送信: {setDayCommand}");
-                        AddLogEntry($"応答: {response}");
+                        //AddLogEntry($"応答: {response}");
                     }
                     catch (Exception ex)
                     {
@@ -353,9 +460,9 @@ namespace RoomKeypadManager
                     try
                     {
                         string setNightCommand = "SETTIME,21";
-                        string response = await telnetClientHelper.SendCommandAsync(setNightCommand);
+                        await telnetClientHelper.SendCommandAsync(setNightCommand);
                         AddLogEntry($"送信: {setNightCommand}");
-                        AddLogEntry($"応答: {response}");
+                        //AddLogEntry($"応答: {response}");
                     }
                     catch (Exception ex)
                     {
@@ -368,13 +475,82 @@ namespace RoomKeypadManager
                 }
             };
 
-            // Telnetレイアウトを配置
-            leftLayout.Controls.Add(telnetLayout, 0, 2);
+            connectTelnetButton.Click += async (sender, e) =>
+            {
+                try
+                {
+                    // 接続解除処理
+                    if (isConnected)
+                    {
+                        telnetClientHelper?.StopListening();
+                        telnetClientHelper?.Close();
+                        isConnected = false;
+                        connectionStatusLabel.Text = "非接続中";
+                        connectionStatusLabel.ForeColor = Color.Red;
+                        connectTelnetButton.Text = "Telnet接続";
+                        AddLogEntry("Telnet接続を解除しました。");
+                        return;
+                    }
+
+                    // 接続情報取得
+                    string ipAddress = ipAddressTextBox.Text.Trim();
+                    string username = "x1s";
+                    string password = "x1s";
+
+                    if (string.IsNullOrWhiteSpace(ipAddress))
+                    {
+                        MessageBox.Show("IPアドレスを入力してください。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    // 接続ステータスを更新
+                    connectionStatusLabel.Text = "接続中...";
+                    connectionStatusLabel.ForeColor = Color.Blue;
+
+                    // Telnet接続初期化
+                    telnetClientHelper = new TelnetClientHelper(structuredData);
+
+                    TcpClient tcpClient = new TcpClient();
+                    await tcpClient.ConnectAsync(ipAddress, 23);
+                    NetworkStream stream = tcpClient.GetStream();
+                    telnetClientHelper.InitializeStream(stream);
+
+                    // ログイン処理
+                    bool loginSuccess = await telnetClientHelper.LoginAsync(username, password);
+                    if (loginSuccess)
+                    {
+                        isConnected = true;
+                        connectionStatusLabel.Text = "接続中";
+                        connectionStatusLabel.ForeColor = Color.Green;
+                        connectTelnetButton.Text = "Telnet接続解除";
+                        AddLogEntry($"Telnet接続およびログインに成功しました: {ipAddress}");
+
+                        // リスニング開始
+                        telnetClientHelper.StartListening();
+
+                        // 確認コマンドを送信
+                        string getTimeCommand = "GETTIME";
+                        await telnetClientHelper.SendCommandAsync(getTimeCommand);
+                        AddLogEntry($"GETTIMEコマンドを送信しました。");
+
+                        await telnetClientHelper.SendBacklightBrightnessCommandsForKeypads(structuredData, AddLogEntry);
+                        AddLogEntry("キーパッドのバックライト確認コマンドを送信しました。");
+                    }
+                    else
+                    {
+                        throw new Exception("ログインに失敗しました。");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // エラー処理
+                    connectionStatusLabel.Text = "非接続中";
+                    connectionStatusLabel.ForeColor = Color.Red;
+                    AddLogEntry($"エラー: {ex.Message}");
+                }
+            };
 
 
-
-
-            // Telnetレイアウトを配置
             leftLayout.Controls.Add(telnetLayout, 0, 2);
 
             // キーパッド表示エリア
@@ -382,7 +558,7 @@ namespace RoomKeypadManager
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
-                BackColor = Color.WhiteSmoke // 背景色を薄く設定
+                BackColor = Color.WhiteSmoke
             };
             leftLayout.Controls.Add(debugPanel, 0, 3);
 
@@ -393,8 +569,8 @@ namespace RoomKeypadManager
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
-                FixedPanel = FixedPanel.Panel2, // 下部を固定
-                SplitterDistance = (int)(this.Height * 0.9), // 上部95%をログ出力部分
+                FixedPanel = FixedPanel.Panel2,
+                SplitterDistance = (int)(this.Height * 0.9)
             };
 
             // 上部ログ出力エリア
@@ -423,7 +599,6 @@ namespace RoomKeypadManager
                 logListBox.Items.Clear();
             };
 
-            // ログ出力部分にクリアボタンとリストを追加
             logGroupBox.Controls.Add(logListBox);
             logGroupBox.Controls.Add(clearLogButton);
 
@@ -444,8 +619,8 @@ namespace RoomKeypadManager
                 RowCount = 1,
                 Padding = new Padding(5)
             };
-            commandLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 80)); // 入力フィールド
-            commandLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20)); // 送信ボタン
+            commandLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 80));
+            commandLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
 
             TextBox commandInputBox = new TextBox
             {
@@ -457,7 +632,7 @@ namespace RoomKeypadManager
             {
                 Text = "送信",
                 Dock = DockStyle.Fill,
-                Height = 30 // Telnet接続ボタンと同じ高さに設定
+                Height = 30
             };
             sendCommandButton.Click += async (sender, e) =>
             {
@@ -476,12 +651,9 @@ namespace RoomKeypadManager
 
                 try
                 {
-                    // コマンド送信
                     AddLogEntry($"送信: {command}");
                     string response = await telnetClientHelper.SendCommandAsync(command);
                     AddLogEntry($"応答: {response}");
-
-                    // 入力ボックスをクリア
                     commandInputBox.Clear();
                 }
                 catch (Exception ex)
@@ -490,76 +662,16 @@ namespace RoomKeypadManager
                 }
             };
 
-            // コマンド入力部分をレイアウトに追加
             commandLayout.Controls.Add(commandInputBox, 0, 0);
             commandLayout.Controls.Add(sendCommandButton, 1, 0);
-
             commandGroupBox.Controls.Add(commandLayout);
             logSplitContainer.Panel2.Controls.Add(commandGroupBox);
 
             mainSplitContainer.Panel2.Controls.Add(logSplitContainer);
 
-            this.Controls.Add(mainSplitContainer);
-
-            // フォームサイズ変更時にSplitterDistanceを調整
-            this.Resize += (sender, e) =>
-            {
-                int desiredDistance = (int)(this.Width * 0.7); // 左70%、右30%に調整
-                int minDistance = mainSplitContainer.Panel1MinSize;
-                int maxDistance = this.Width - mainSplitContainer.Panel2MinSize;
-
-                // SplitterDistance の制約を考慮して設定
-                mainSplitContainer.SplitterDistance = Math.Max(minDistance, Math.Min(desiredDistance, maxDistance));
-            };
-
-            // コマンド入力部分をレイアウトに追加
-            commandLayout.Controls.Add(commandInputBox, 0, 0);
-            commandLayout.Controls.Add(sendCommandButton, 1, 0);
-
-            commandGroupBox.Controls.Add(commandLayout);
-            logSplitContainer.Panel2.Controls.Add(commandGroupBox);
-
-            mainSplitContainer.Panel2.Controls.Add(logSplitContainer);
-
-            this.Controls.Add(mainSplitContainer);
-
-
-            // コマンド入力部分をレイアウトに追加
-            commandLayout.Controls.Add(commandInputBox, 0, 0);
-            commandLayout.Controls.Add(sendCommandButton, 1, 0);
-
-            commandGroupBox.Controls.Add(commandLayout);
-            logSplitContainer.Panel2.Controls.Add(commandGroupBox);
-
-            mainSplitContainer.Panel2.Controls.Add(logSplitContainer);
-
-            this.Controls.Add(mainSplitContainer);
-
-            // フォームサイズ変更時にSplitterDistanceを調整
-            this.Resize += (sender, e) =>
-            {
-                int totalWidth = mainSplitContainer.Width;
-                int panel1MinSize = mainSplitContainer.Panel1MinSize;
-                int panel2MinSize = mainSplitContainer.Panel2MinSize;
-
-                int minSplitterDistance = panel1MinSize;
-                int maxSplitterDistance = totalWidth - panel2MinSize;
-
-                if (totalWidth >= (panel1MinSize + panel2MinSize))
-                {
-                    int desiredDistance = (int)(totalWidth * 0.7);
-                    mainSplitContainer.SplitterDistance = Math.Max(minSplitterDistance, Math.Min(desiredDistance, maxSplitterDistance));
-                }
-                else
-                {
-                    mainSplitContainer.SplitterDistance = minSplitterDistance;
-                }
-            };
-
-            // リサイズ中の再描画を抑制
-            this.ResizeBegin += (sender, e) => mainSplitContainer.SuspendLayout();
-            this.ResizeEnd += (sender, e) => mainSplitContainer.ResumeLayout();
+            roomKeypadTab.Controls.Add(mainSplitContainer);
         }
+
 
         private bool SelectCsvFile(out string filePath)
         {
@@ -693,13 +805,12 @@ namespace RoomKeypadManager
                         Margin = new Padding(5)
                     };
 
-                    // デバイスIDでキーパッドを登録
-                    AddKeypad(device.ID, keypad);
-
                     // キーパッドを枠内に追加
                     keypadContainer.Controls.Add(keypad);
                     groupFlowPanel.Controls.Add(keypadContainer);
                 }
+
+
 
                 mainFlowPanel.Controls.Add(groupFlowPanel);
             }
@@ -707,7 +818,6 @@ namespace RoomKeypadManager
             debugPanel.Controls.Add(mainFlowPanel);
             debugPanel.Update();
         }
-
 
 
         private void AddLogEntry(string logMessage)
@@ -756,6 +866,28 @@ namespace RoomKeypadManager
             }
             return 0;
         }
+
+        //public Keypad FindKeypadByDeviceID(string deviceID)
+        //{
+        //    foreach (Control control in debugPanel.Controls)
+        //    {
+        //        if (control is FlowLayoutPanel layoutPanel)
+        //        {
+        //            foreach (Control childControl in layoutPanel.Controls)
+        //            {
+        //                if (childControl is Keypad keypad && keypad.DeviceID == deviceID)
+        //                {
+        //                    return keypad;
+        //                }
+        //            }
+        //        }
+        //    }
+
+        //    AddLogEntry($"[ERROR] DeviceID: {deviceID} に対応する Keypad が見つかりません。");
+        //    return null;
+        //}
+
+
 
     }
 }

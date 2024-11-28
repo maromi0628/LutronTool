@@ -5,9 +5,11 @@ namespace RoomKeypadManager
 {
     public class CsvProcessor
     {
-        public static Dictionary<string, List<DeviceData>> ProcessCsvFile(string filePath)
+        public static (Dictionary<string, List<DeviceData>>, Dictionary<string, Dictionary<string, string>>) ProcessCsvFile(string filePath)
         {
             var structuredData = new Dictionary<string, List<DeviceData>>();
+            var additionalData = new Dictionary<string, Dictionary<string, string>>();
+
             var deviceNameCounter = new Dictionary<string, int>(); // デバイス名のカウンタ
             string lastRoomKey = null; // 直前の部屋キーを保持
             string lastDeviceName = null; // 直前のデバイス名を保持
@@ -22,6 +24,8 @@ namespace RoomKeypadManager
                 }
 
                 string line;
+
+                // --- 1週目: 既存のデバイスデータ処理 ---
                 while ((line = reader.ReadLine()) != null)
                 {
                     string[] columns = line.Split(',');
@@ -106,10 +110,76 @@ namespace RoomKeypadManager
                     lastDeviceName = deviceName;
                     lastDeviceID = id;
                 }
+
+                // --- 2週目: 新しいデータを取得 ---
+                reader.BaseStream.Seek(0, SeekOrigin.Begin); // ファイルの先頭に戻る
+                reader.DiscardBufferedData();
+
+                // 最初の6行をスキップ
+                for (int i = 0; i < 6; i++)
+                {
+                    reader.ReadLine();
+                }
+
+                string currentSection = null; // 現在のセクション ("Zone Name", "HVAC Zone Name", etc.)
+                bool terminateAfterThermostatMode = false; // 処理を終了するフラグ
+
+                while ((line = reader.ReadLine()) != null)
+                {
+                    string[] columns = line.Split(',');
+
+                    // A列の内容を確認
+                    string aColumn = columns.Length > 0 ? columns[0] : null;
+                    string bColumn = columns.Length > 1 ? columns[1] : null;
+
+                    if (terminateAfterThermostatMode && string.IsNullOrWhiteSpace(aColumn))
+                    {
+                        break; // 処理終了
+                    }
+
+                    // セクション開始を判定
+                    if (aColumn.Equals("Zone Name"))
+                    {
+                        currentSection = "Zone Name";
+                        continue;
+                    }
+                    else if (aColumn.Equals("HVAC Zone Name"))
+                    {
+                        currentSection = "HVAC Zone Name";
+                        continue;
+                    }
+                    else if (aColumn.Equals("Variable Name"))
+                    {
+                        currentSection = "Variable Name";
+                        continue;
+                    }
+                    else if (aColumn.Equals("Thermostat Mode"))
+                    {
+                        currentSection = "Thermostat Mode";
+                        terminateAfterThermostatMode = true; // 次に空白が来たら終了
+                        continue;
+                    }
+
+                    // 現在のセクションに基づいてデータを記録
+                    if (!string.IsNullOrWhiteSpace(currentSection))
+                    {
+                        if (!additionalData.ContainsKey(currentSection))
+                        {
+                            additionalData[currentSection] = new Dictionary<string, string>();
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(aColumn) && !string.IsNullOrWhiteSpace(bColumn))
+                        {
+                            additionalData[currentSection][aColumn] = bColumn;
+                        }
+                    }
+                }
             }
 
-            return structuredData;
+            // structuredData に additionalData を追加して戻すか、別途返却可能
+            return (structuredData, additionalData);
         }
+
 
     }
 }

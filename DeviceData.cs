@@ -19,11 +19,14 @@ public class DeviceData
     /// <param name="isActive">アクティブ状態なら true、インアクティブなら false</param>
     public void SetButtonState(int buttonIndex, bool isActive)
     {
-        if (ButtonStates == null)
+        if (!ButtonStates.ContainsKey(buttonIndex))
         {
-            ButtonStates = new Dictionary<int, bool>();
+            ButtonStates.Add(buttonIndex, isActive);
         }
-        ButtonStates[buttonIndex] = isActive;
+        else
+        {
+            ButtonStates[buttonIndex] = isActive; // 状態を更新
+        }
     }
 
     /// <summary>
@@ -33,7 +36,7 @@ public class DeviceData
     /// <returns>アクティブ状態なら true、インアクティブなら false、未設定なら null</returns>
     public bool? GetButtonState(int buttonIndex)
     {
-        return ButtonStates.ContainsKey(buttonIndex) ? ButtonStates[buttonIndex] : (bool?)null;
+        return ButtonStates.TryGetValue(buttonIndex, out var state) ? (bool?)state : null;
     }
 
     /// <summary>
@@ -104,5 +107,19 @@ public class DeviceData
     public int GetInactiveBrightness()
     {
         return InactiveBrightness; // 既存プロパティを返す
+    }
+
+    /// <summary>
+    /// デバッグ用: すべてのボタン状態を文字列で取得
+    /// </summary>
+    /// <returns>全ボタンの状態を表す文字列</returns>
+    public string GetButtonStatesAsString()
+    {
+        var stateStrings = new List<string>();
+        foreach (var kvp in ButtonStates)
+        {
+            stateStrings.Add($"Button {kvp.Key}: {(kvp.Value ? "Active" : "Inactive")}");
+        }
+        return string.Join(", ", stateStrings);
     }
 }
