@@ -17,6 +17,23 @@ namespace RoomKeypadManager
         private TelnetClientHelper telnetClientHelper = null;
         private bool isConnected = false; // 接続状態を管理
 
+        private Dictionary<string, Keypad> keypadMap = new Dictionary<string, Keypad>(); // デバイスIDをキーとしてキーパッドを保持
+
+        
+
+        /// <summary>
+        /// キーパッドをマップに追加します。
+        /// </summary>
+        /// <param name="deviceID">デバイスID</param>
+        /// <param name="keypad">キーパッドインスタンス</param>
+        public void AddKeypad(string deviceID, Keypad keypad)
+        {
+            if (!keypadMap.ContainsKey(deviceID))
+            {
+                keypadMap[deviceID] = keypad;
+            }
+        }
+
         public MainForm()
         {
             InitializeComponent();
@@ -32,6 +49,30 @@ namespace RoomKeypadManager
                 this.Close();
             }
         }
+
+        private System.Windows.Forms.Timer responseProcessingTimer;
+
+        private void InitializeResponseProcessing()
+        {
+            // タイマーを設定
+            responseProcessingTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 1000 // 1秒ごとにレスポンスを処理
+            };
+
+            responseProcessingTimer.Tick += (sender, e) =>
+            {
+                if (telnetClientHelper != null && isConnected)
+                {
+                    // レスポンスバッファを処理
+                    telnetClientHelper.ProcessResponseBuffer(AddLogEntry);
+                }
+            };
+
+            responseProcessingTimer.Start();
+        }
+
+
 
         private void InitializeComponent()
         {
@@ -463,31 +504,6 @@ namespace RoomKeypadManager
             // フォームサイズ変更時にSplitterDistanceを調整
             this.Resize += (sender, e) =>
             {
-                // 左右分割を維持
-                int desiredMainSplitDistance = (int)(this.Width * 0.7);
-                int minDistance = mainSplitContainer.Panel1MinSize;
-                int maxDistance = this.Width - mainSplitContainer.Panel2MinSize;
-                mainSplitContainer.SplitterDistance = Math.Max(minDistance, Math.Min(desiredMainSplitDistance, maxDistance));
-
-                // 上下分割を維持
-                int desiredLogSplitDistance = (int)(mainSplitContainer.Panel2.Height * 0.9);
-                logSplitContainer.SplitterDistance = desiredLogSplitDistance;
-            };
-
-            // コマンド入力部分をレイアウトに追加
-            commandLayout.Controls.Add(commandInputBox, 0, 0);
-            commandLayout.Controls.Add(sendCommandButton, 1, 0);
-
-            commandGroupBox.Controls.Add(commandLayout);
-            logSplitContainer.Panel2.Controls.Add(commandGroupBox);
-
-            mainSplitContainer.Panel2.Controls.Add(logSplitContainer);
-
-            this.Controls.Add(mainSplitContainer);
-
-            // フォームサイズ変更時にSplitterDistanceを調整
-            this.Resize += (sender, e) =>
-            {
                 int desiredDistance = (int)(this.Width * 0.7); // 左70%、右30%に調整
                 int minDistance = mainSplitContainer.Panel1MinSize;
                 int maxDistance = this.Width - mainSplitContainer.Panel2MinSize;
@@ -506,6 +522,43 @@ namespace RoomKeypadManager
             mainSplitContainer.Panel2.Controls.Add(logSplitContainer);
 
             this.Controls.Add(mainSplitContainer);
+
+
+            // コマンド入力部分をレイアウトに追加
+            commandLayout.Controls.Add(commandInputBox, 0, 0);
+            commandLayout.Controls.Add(sendCommandButton, 1, 0);
+
+            commandGroupBox.Controls.Add(commandLayout);
+            logSplitContainer.Panel2.Controls.Add(commandGroupBox);
+
+            mainSplitContainer.Panel2.Controls.Add(logSplitContainer);
+
+            this.Controls.Add(mainSplitContainer);
+
+            // フォームサイズ変更時にSplitterDistanceを調整
+            this.Resize += (sender, e) =>
+            {
+                int totalWidth = mainSplitContainer.Width;
+                int panel1MinSize = mainSplitContainer.Panel1MinSize;
+                int panel2MinSize = mainSplitContainer.Panel2MinSize;
+
+                int minSplitterDistance = panel1MinSize;
+                int maxSplitterDistance = totalWidth - panel2MinSize;
+
+                if (totalWidth >= (panel1MinSize + panel2MinSize))
+                {
+                    int desiredDistance = (int)(totalWidth * 0.7);
+                    mainSplitContainer.SplitterDistance = Math.Max(minSplitterDistance, Math.Min(desiredDistance, maxSplitterDistance));
+                }
+                else
+                {
+                    mainSplitContainer.SplitterDistance = minSplitterDistance;
+                }
+            };
+
+            // リサイズ中の再描画を抑制
+            this.ResizeBegin += (sender, e) => mainSplitContainer.SuspendLayout();
+            this.ResizeEnd += (sender, e) => mainSplitContainer.ResumeLayout();
         }
 
         private bool SelectCsvFile(out string filePath)
@@ -625,18 +678,23 @@ namespace RoomKeypadManager
                     };
 
                     Keypad keypad = new Keypad(
-                        device.Buttons.Count,
-                        device.Buttons,
-                        device.DColumns, // D列情報
-                        AddLogEntry,
-                        device.DeviceName,
-                        device.ID, // デバイスID
-                        () => isConnected, // 接続状態を確認
-                        (command) => telnetClientHelper.SendCommandAsync(command)) // Telnetコマンド送信
+                        device.DeviceName, // デバイス名
+                        device.ID,         // デバイスID
+                        device.Buttons,    // ボタン名リスト (CSV の F 列データ)
+                        device.DColumns,   // D列情報
+                        () => isConnected, // Telnet接続確認
+                        (buttonIndex) => device.GetButtonState(buttonIndex), // ボタン状態取得
+                        (id) => structuredData[selectedRoomKey].First(d => d.ID == id).ActiveBrightness, // アクティブ照度取得
+                        (id) => structuredData[selectedRoomKey].First(d => d.ID == id).InactiveBrightness, // インアクティブ照度取得
+                        AddLogEntry, // ログ出力
+                        (command) => telnetClientHelper.SendCommandAsync(command)) // コマンド送信
                     {
                         Name = group.Key, // デバイス名をキーとして設定（例: "SW2"）
                         Margin = new Padding(5)
                     };
+
+                    // デバイスIDでキーパッドを登録
+                    AddKeypad(device.ID, keypad);
 
                     // キーパッドを枠内に追加
                     keypadContainer.Controls.Add(keypad);
@@ -650,10 +708,54 @@ namespace RoomKeypadManager
             debugPanel.Update();
         }
 
+
+
         private void AddLogEntry(string logMessage)
         {
             logListBox.Items.Add(logMessage);
             logListBox.TopIndex = logListBox.Items.Count - 1;
         }
+
+        private bool? GetButtonState(string deviceID, int buttonIndex)
+        {
+            if (structuredData != null)
+            {
+                // 対応するデバイスを検索
+                var device = structuredData.Values
+                    .SelectMany(devices => devices)
+                    .FirstOrDefault(d => d.ID == deviceID);
+
+                // ボタン状態を取得（仮のロジック。実際にはボタン状態を保持するデータ構造が必要）
+                return device?.Buttons.Count > buttonIndex
+                    ? (bool?)true // 仮にすべてのボタンがアクティブ
+                    : (bool?)false;
+            }
+            return null;
+        }
+
+        private int GetActiveBrightness(string deviceID)
+        {
+            if (structuredData != null)
+            {
+                var device = structuredData.Values
+                    .SelectMany(devices => devices)
+                    .FirstOrDefault(d => d.ID == deviceID);
+                return device?.ActiveBrightness ?? 0;
+            }
+            return 0;
+        }
+
+        private int GetInactiveBrightness(string deviceID)
+        {
+            if (structuredData != null)
+            {
+                var device = structuredData.Values
+                    .SelectMany(devices => devices)
+                    .FirstOrDefault(d => d.ID == deviceID);
+                return device?.InactiveBrightness ?? 0;
+            }
+            return 0;
+        }
+
     }
 }
