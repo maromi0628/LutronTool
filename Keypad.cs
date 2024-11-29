@@ -117,44 +117,6 @@ namespace RoomKeypadManager
             this.AutoSize = true;
         }
 
-        /// <summary>
-        /// ボタンのバックライトを更新
-        /// </summary>
-        /// <param name="buttonIndex">ボタン番号</param>
-        /// <param name="button">対象のボタン</param>
-        //private void UpdateButtonBacklight(int buttonIndex, Button button)
-        //{
-        //    if (!isTelnetConnected()) // Telnet未接続の場合は消灯
-        //    {
-        //        button.BackColor = Color.Black;
-        //        button.Text = $"{button.Text}\n(OFF)";
-        //        return;
-        //    }
-
-        //    bool? isActive = getButtonState(buttonIndex); // ボタンの状態を取得
-        //    if (isActive.HasValue)
-        //    {
-        //        int brightness = isActive.Value
-        //            ? getActiveBrightness(deviceID) // アクティブ状態の照度
-        //            : getInactiveBrightness(deviceID); // インアクティブ状態の照度
-
-        //        // 照度に応じて背景色を変更
-        //        int colorValue = Math.Min(255, Math.Max(0, (int)(255 * (brightness / 100.0))));
-        //        button.BackColor = Color.FromArgb(colorValue, colorValue, colorValue);
-        //        button.Text = $"{buttonNames[buttonIndex - 1]}\n({brightness}%)";
-        //    }
-        //    else
-        //    {
-        //        button.BackColor = Color.Black; // 状態が不明な場合は消灯
-        //        button.Text = $"{buttonNames[buttonIndex - 1]}\n(UNKNOWN)";
-        //    }
-        //}
-
-        /// <summary>
-        /// ボタンのバックライトを更新
-        /// </summary>
-        /// <param name="buttonIndex">ボタン番号</param>
-        /// <param name="button">対象のボタン</param>
         private void UpdateButtonBacklight(int buttonIndex, Button button)
         {
             if (!isTelnetConnected()) // Telnet未接続の場合は消灯（黒）

@@ -45,29 +45,49 @@ public class TelnetClientHelper
         writer = new StreamWriter(networkStream, Encoding.ASCII) { AutoFlush = true };
     }
 
-    public async Task<bool> LoginAsync(string username, string password)
+    public async Task<bool> LoginAsync(string username, string password,string nwk,bool nwk_check)
     {
         if (reader == null || writer == null)
         {
             throw new InvalidOperationException("Telnet接続が確立されていません。");
         }
 
-        try
-        {
-            await ReadToBufferAsync();
-            await WriteCommandAsync(username);
+        if(nwk_check == true) {
+            try
+            {
+                await ReadToBufferAsync();
+                await WriteCommandAsync(nwk);
 
-            await ReadToBufferAsync();
-            await WriteCommandAsync(password);
+                await ReadToBufferAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ログインエラー: {ex.Message}");
+                return false;
+            }
+        }
 
-            await ReadToBufferAsync();
-            return true;
-        }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine($"ログインエラー: {ex.Message}");
-            return false;
+            try
+            {
+                await ReadToBufferAsync();
+                await WriteCommandAsync(username);
+
+                await ReadToBufferAsync();
+                await WriteCommandAsync(password);
+
+                await ReadToBufferAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ログインエラー: {ex.Message}");
+                return false;
+            }
         }
+        
     }
 
     public async Task<string> SendCommandAsync(string command)
@@ -165,8 +185,34 @@ public class TelnetClientHelper
                 }
             }
         }
+
+        // 新規照度電文処理（~OUTPUT,ID,1,Brightness）
+        Regex regexOutputBrightness = new Regex(@"~OUTPUT,(\d+),1,(\d{1,3}\.\d{1,2})");
+        Match matchOutputBrightness = regexOutputBrightness.Match(message);
+        if (matchOutputBrightness.Success)
+        {
+            string id = matchOutputBrightness.Groups[1].Value;
+            float brightness = float.Parse(matchOutputBrightness.Groups[2].Value);
+
+            foreach (var roomKey in structuredData.Keys)
+            {
+                var device = structuredData[roomKey].FirstOrDefault(d => d.ID == id);
+                if (device != null)
+                {
+                    // 照度を更新
+                    device.ActiveBrightness = (int)brightness;
+
+                    // MainForm のインスタンスを使って2個目のタブを更新
+                    mainFormInstance?.UpdateLightingStatusTabBrightness(id, brightness);
+
+                    logAction?.Invoke($"[INFO] ID: {id} の照度を {brightness}% に更新しました。");
+                    return;
+                }
+            }
+        }
     }
 
+    
 
     public void StartListening()
     {

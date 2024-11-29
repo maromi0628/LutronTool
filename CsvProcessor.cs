@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace RoomKeypadManager
 {
@@ -42,6 +43,13 @@ namespace RoomKeypadManager
                     string dColumn = columns[3];  // D列: 判定用
                     string fColumn = columns[5];  // F列: ボタン名
 
+                    // C列 (ID) の処理
+                    if (!string.IsNullOrWhiteSpace(id) && id.Contains("/"))
+                    {
+                        // 最後のバックスラッシュ以降の文字列を取得
+                        id = id.Substring(id.LastIndexOf("/") + 1);
+                    }
+
                     // C列が空白の場合はスキップ
                     if (string.IsNullOrWhiteSpace(id))
                     {
@@ -67,17 +75,17 @@ namespace RoomKeypadManager
                     // A列が空白の場合、直前の部屋キーとデバイス名を使用
                     if (string.IsNullOrWhiteSpace(fullPath) && !string.IsNullOrWhiteSpace(lastRoomKey) && !string.IsNullOrWhiteSpace(lastDeviceName))
                     {
-                        fullPath = $"{lastRoomKey}\\{lastDeviceName}";
+                        fullPath = $"{lastRoomKey}/{lastDeviceName}";
                     }
 
-                    if (string.IsNullOrWhiteSpace(fullPath) || !fullPath.Contains("\\"))
+                    if (string.IsNullOrWhiteSpace(fullPath) || !fullPath.Contains("/"))
                     {
                         continue; // 無効なデータをスキップ
                     }
 
                     // 部屋キーとデバイス名を分割
-                    string[] parts = fullPath.Split('\\');
-                    string roomKey = string.Join("\\", parts.Take(parts.Length - 1)); // 部屋キー
+                    string[] parts = fullPath.Split('/');
+                    string roomKey = string.Join("/", parts.Take(parts.Length - 1)); // 部屋キー
                     string deviceName = parts.Last(); // デバイス名
 
                     // ボタン情報を取得
@@ -132,7 +140,13 @@ namespace RoomKeypadManager
                     string aColumn = columns.Length > 0 ? columns[0] : null;
                     string bColumn = columns.Length > 1 ? columns[1] : null;
 
-                    if (terminateAfterThermostatMode && string.IsNullOrWhiteSpace(aColumn))
+                    // B列の値を処理
+                    if (!string.IsNullOrWhiteSpace(bColumn) && bColumn.Contains("/"))
+                    {
+                        bColumn = bColumn.Substring(bColumn.LastIndexOf("/") + 1);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(aColumn) && aColumn.Contains("Lutron Electronics"))
                     {
                         break; // 処理終了
                     }
@@ -156,7 +170,7 @@ namespace RoomKeypadManager
                     else if (aColumn.Equals("Thermostat Mode"))
                     {
                         currentSection = "Thermostat Mode";
-                        terminateAfterThermostatMode = true; // 次に空白が来たら終了
+                        //terminateAfterThermostatMode = true; // 次に空白が来たら終了
                         continue;
                     }
 
@@ -174,12 +188,11 @@ namespace RoomKeypadManager
                         }
                     }
                 }
+
             }
 
             // structuredData に additionalData を追加して戻すか、別途返却可能
             return (structuredData, additionalData);
         }
-
-
     }
 }

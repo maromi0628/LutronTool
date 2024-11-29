@@ -17,6 +17,8 @@ namespace RoomKeypadManager
         private ListBox logListBox;
         private TelnetClientHelper telnetClientHelper = null;
         private bool isConnected = false;
+        private TabControl tabControl; // クラスレベルで宣言
+
 
 
         public MainForm()
@@ -26,9 +28,7 @@ namespace RoomKeypadManager
 
             if (SelectCsvFile(out string filePath))
             {
-                //var result = CsvProcessor.ProcessCsvFile(filePath);
-                //structuredData = result.Item1;
-                //additionalData = result.Item2;
+                // CSVファイルを処理
                 (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(filePath);
 
                 // structuredDataを渡してTelnetClientHelperを初期化
@@ -42,10 +42,39 @@ namespace RoomKeypadManager
                 this.Close();
             }
 
-            // Lighting Status タブを初期化
-            InitializeLightingStatusTab();
+            // タブコントロールから Lighting Status タブを取得
+            TabPage lightingStatusTab = GetLightingStatusTab();
 
+            // Lighting Status タブを初期化
+            if (lightingStatusTab != null)
+            {
+                InitializeLightingStatusTab(lightingStatusTab);
+            }
+            else
+            {
+                MessageBox.Show("Lighting Status タブが見つかりませんでした。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+
+        // タブコントロールから Lighting Status タブを取得するヘルパーメソッド
+        private TabPage GetLightingStatusTab()
+        {
+            foreach (Control control in this.Controls)
+            {
+                if (control is TabControl tabControl)
+                {
+                    foreach (TabPage tabPage in tabControl.TabPages)
+                    {
+                        if (tabPage.Text == "Lighting Status")
+                        {
+                            return tabPage;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
 
 
 
@@ -134,25 +163,11 @@ namespace RoomKeypadManager
             this.Controls.Add(tabControl); // タブコントロールをメインに追加
         }
 
-        private void InitializeLightingStatusTab()
+        private void InitializeLightingStatusTab(TabPage lightingStatusTab)
         {
-            // TabControl を取得
-            var tabControl = (TabControl)this.Controls[0];
-
-            // "Lighting Status" タブが既に存在するか確認し、あれば削除
-            var existingTab = tabControl.TabPages.Cast<TabPage>().FirstOrDefault(tab => tab.Text == "Lighting Status");
-            if (existingTab != null)
-            {
-                tabControl.TabPages.Remove(existingTab);
-            }
-
-            TabPage lightingStatusTab = new TabPage("Lighting Status")
-            {
-                BackColor = Color.White
-            };
-
             if (additionalData == null || additionalData.Count == 0)
             {
+                // データがない場合のプレースホルダ
                 Label placeholder = new Label
                 {
                     Text = "照明のステータスデータがありません。",
@@ -162,77 +177,124 @@ namespace RoomKeypadManager
                 };
 
                 lightingStatusTab.Controls.Add(placeholder);
+                return;
             }
-            else
+
+            // 全体を縦方向に並べるPanel
+            var mainPanel = new TableLayoutPanel
             {
-                // スクロール可能な Panel を作成
-                Panel scrollablePanel = new Panel
+                Dock = DockStyle.Fill,
+                RowCount = 2,
+                ColumnCount = 1,
+                Padding = new Padding(10),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink
+            };
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // 上部: チェックボックスエリア
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // 下部: データテーブルエリア
+
+            // セクションの選択エリア
+            var sectionFilterPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                Padding = new Padding(5),
+                BackColor = Color.White
+            };
+
+            // DataGridViewを作成
+            var lightingTable = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+            };
+
+            // カラムを追加 (列幅を指定)
+            var sectionColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "ColumnSection",
+                HeaderText = "セクション",
+                FillWeight = 10 // 幅の割合（10%）
+            };
+
+            var keyColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "ColumnKey",
+                HeaderText = "キー",
+                FillWeight = 50 // 幅の割合（50%）
+            };
+
+            var idColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "ColumnID",
+                HeaderText = "ID",
+                FillWeight = 10 // 幅の割合（10%）
+            };
+
+            var valueColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "ColumnValue",
+                HeaderText = "値",
+                FillWeight = 30 // 幅の割合（30%）
+            };
+
+            lightingTable.Columns.AddRange(sectionColumn, keyColumn, idColumn, valueColumn);
+
+            // セクションごとの表示管理
+            Dictionary<string, bool> sectionVisibility = additionalData.Keys.ToDictionary(section => section, section => true);
+
+            // セクションフィルタ用チェックボックスを作成
+            foreach (var section in additionalData.Keys)
+            {
+                CheckBox sectionCheckBox = new CheckBox
                 {
-                    Dock = DockStyle.Fill,
-                    AutoScroll = true, // スクロールを有効化
-                    BackColor = Color.White
+                    Text = section,
+                    Checked = true,
+                    AutoSize = true,
+                    Margin = new Padding(5)
                 };
 
-                TableLayoutPanel lightingTable = new TableLayoutPanel
+                sectionCheckBox.CheckedChanged += (sender, e) =>
                 {
-                    Dock = DockStyle.Top,
-                    ColumnCount = 2,
-                    AutoSize = true, // 自動サイズ設定
-                    Padding = new Padding(10),
-                    BackColor = Color.White
+                    sectionVisibility[section] = sectionCheckBox.Checked;
+                    UpdateLightingTable();
                 };
 
-                lightingTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-                lightingTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+                sectionFilterPanel.Controls.Add(sectionCheckBox);
+            }
+
+            // データを更新するロジック
+            void UpdateLightingTable()
+            {
+                lightingTable.Rows.Clear(); // 既存の行をクリア
 
                 foreach (var section in additionalData.Keys)
                 {
-                    Label sectionLabel = new Label
-                    {
-                        Text = section,
-                        AutoSize = true,
-                        Font = new Font(FontFamily.GenericSansSerif, 14, FontStyle.Bold),
-                        Margin = new Padding(10, 20, 10, 5),
-                        TextAlign = ContentAlignment.MiddleLeft
-                    };
-
-                    lightingTable.Controls.Add(sectionLabel);
-                    lightingTable.SetColumnSpan(sectionLabel, 2);
+                    if (!sectionVisibility[section]) continue; // 非表示のセクションはスキップ
 
                     foreach (var item in additionalData[section])
                     {
-                        Label keyLabel = new Label
-                        {
-                            Text = item.Key,
-                            AutoSize = true,
-                            Font = new Font(FontFamily.GenericSansSerif, 12),
-                            Margin = new Padding(5)
-                        };
-
-                        Label valueLabel = new Label
-                        {
-                            Text = item.Value,
-                            AutoSize = true,
-                            Font = new Font(FontFamily.GenericSansSerif, 12),
-                            Margin = new Padding(5)
-                        };
-
-                        lightingTable.Controls.Add(keyLabel);
-                        lightingTable.Controls.Add(valueLabel);
+                        lightingTable.Rows.Add(section, item.Key, item.Value, ""); // 値列には空白を挿入
                     }
                 }
-
-                // TableLayoutPanel をスクロール可能な Panel に追加
-                scrollablePanel.Controls.Add(lightingTable);
-
-                // スクロール可能 Panel を TabPage に追加
-                lightingStatusTab.Controls.Add(scrollablePanel);
             }
 
-            // TabPage を追加
-            tabControl.TabPages.Add(lightingStatusTab);
-        }
+            // 初期データを追加
+            UpdateLightingTable();
 
+            // コンポーネントを配置
+            mainPanel.Controls.Add(sectionFilterPanel, 0, 0);
+            mainPanel.Controls.Add(lightingTable, 0, 1);
+
+            // 作成したPanelをタブに追加
+            lightingStatusTab.Controls.Clear();
+            lightingStatusTab.Controls.Add(mainPanel);
+        }
 
 
 
@@ -252,13 +314,75 @@ namespace RoomKeypadManager
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 4,
+                RowCount = 5, // CSV選択エリアを追加するため4→5に変更
                 Padding = new Padding(10)
             };
+            leftLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // CSV選択エリア
             leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40)); // CSV情報
             leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));  // デバッグ作成ボタン
             leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));  // Telnet接続用
             leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 50)); // キーパッド表示
+
+            // CSV選択エリア
+            TableLayoutPanel csvSelectionLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                Padding = new Padding(5),
+                AutoSize = true
+            };
+
+            csvSelectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 80)); // アドレス表示用TextBox (80%幅)
+            csvSelectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // 参照ボタン (自動幅)
+
+            // CSV所在アドレス表示用TextBox
+            TextBox csvPathTextBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                PlaceholderText = "CSVファイルのパスを選択してください",
+                Margin = new Padding(5)
+            };
+
+            // CSV参照ボタン
+            Button browseCsvButton = new Button
+            {
+                Text = "参照",
+                AutoSize = true,          // サイズをコンテンツに合わせる
+                AutoSizeMode = AutoSizeMode.GrowAndShrink, // さらに小さく調整可能
+                Margin = new Padding(5),  // ボタン周囲のスペース
+                Height = 25               // ボタンの高さを1行分に調整
+            };
+
+            // ボタンのクリックイベントでCSVファイル選択ダイアログを表示
+            browseCsvButton.Click += (sender, e) =>
+            {
+                using (OpenFileDialog openFileDialog = new OpenFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv",
+                    Title = "CSVファイルを選択してください"
+                })
+                {
+                    if (openFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        string selectedFilePath = openFileDialog.FileName;
+                        csvPathTextBox.Text = selectedFilePath; // 選択したパスをTextBoxに表示
+
+                        // CSVデータを再読み込みしてUIを更新
+                        (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(selectedFilePath);
+                        roomKeySelector.Items.Clear();
+                        InitializeUI(); // 再度UIを初期化
+                        MessageBox.Show("CSVファイルが正常に読み込まれました。", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            };
+
+            // CSV選択エリアにコンポーネントを追加
+            csvSelectionLayout.Controls.Add(csvPathTextBox, 0, 0);
+            csvSelectionLayout.Controls.Add(browseCsvButton, 1, 0);
+            leftLayout.Controls.Add(csvSelectionLayout, 0, 0);
+
 
             // CSV情報エリア
             TableLayoutPanel csvInfoLayout = new TableLayoutPanel
@@ -305,7 +429,7 @@ namespace RoomKeypadManager
             deviceTable.Columns.Add("ColumnButtons", "ボタン情報");
             csvInfoLayout.Controls.Add(deviceTable, 0, 2);
 
-            leftLayout.Controls.Add(csvInfoLayout, 0, 0);
+            leftLayout.Controls.Add(csvInfoLayout, 1, 0);
 
             // デバッグ環境作成ボタン
             Button createDebugEnvironmentButton = new Button
@@ -321,17 +445,19 @@ namespace RoomKeypadManager
             TableLayoutPanel telnetLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 7,
+                ColumnCount = 8,
                 RowCount = 1,
                 Padding = new Padding(10)
             };
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // IP入力フィールド
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // 接続ボタン
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // ラジオボタンエリア
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));   // ステータスラベル
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // GETTIMEボタン
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET DAYボタン
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET NIGHTボタン
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));   // ステータスラベル
             telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // 状態確認ボタン
+
 
             // IP入力フィールド
             TextBox ipAddressTextBox = new TextBox
@@ -360,7 +486,7 @@ namespace RoomKeypadManager
                 Margin = new Padding(5),
                 Height = 30
             };
-            telnetLayout.Controls.Add(getTimeButton, 2, 0);
+            telnetLayout.Controls.Add(getTimeButton, 4, 0);
 
             // SET DAYボタン
             Button setDayButton = new Button
@@ -370,7 +496,7 @@ namespace RoomKeypadManager
                 Margin = new Padding(5),
                 Height = 30
             };
-            telnetLayout.Controls.Add(setDayButton, 3, 0);
+            telnetLayout.Controls.Add(setDayButton, 5, 0);
 
             // SET NIGHTボタン
             Button setNightButton = new Button
@@ -380,7 +506,7 @@ namespace RoomKeypadManager
                 Margin = new Padding(5),
                 Height = 30
             };
-            telnetLayout.Controls.Add(setNightButton, 4, 0);
+            telnetLayout.Controls.Add(setNightButton, 6, 0);
 
             // 接続ステータスラベル
             Label connectionStatusLabel = new Label
@@ -392,7 +518,7 @@ namespace RoomKeypadManager
                 Margin = new Padding(5),
                 ForeColor = Color.Red
             };
-            telnetLayout.Controls.Add(connectionStatusLabel, 5, 0);
+            telnetLayout.Controls.Add(connectionStatusLabel, 3, 0);
 
             // 状態確認ボタン
             Button checkStateButton = new Button
@@ -402,7 +528,53 @@ namespace RoomKeypadManager
                 Margin = new Padding(5),
                 Height = 30
             };
-            telnetLayout.Controls.Add(checkStateButton, 6, 0);
+            telnetLayout.Controls.Add(checkStateButton, 7, 0);
+
+            // ラジオボタンエリア
+            FlowLayoutPanel radioPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                AutoSize = true,
+                Margin = new Padding(5)
+            };
+
+            RadioButton gcuRadioButton = new RadioButton
+            {
+                Text = "GCU",
+                Checked = true, // デフォルトで選択
+                AutoSize = true,
+                Margin = new Padding(5)
+            };
+
+            RadioButton nwkRadioButton = new RadioButton
+            {
+                Text = "NWK",
+                AutoSize = true,
+                Margin = new Padding(5)
+            };
+
+            // ラジオボタンを追加
+            radioPanel.Controls.Add(gcuRadioButton);
+            radioPanel.Controls.Add(nwkRadioButton);
+            telnetLayout.Controls.Add(radioPanel, 2, 0);
+
+            // ボタンのイベントハンドラ内で選択内容を使用可能にする
+            connectTelnetButton.Click += (sender, e) =>
+            {
+                if (gcuRadioButton.Checked)
+                {
+                    AddLogEntry("選択された接続タイプ: GCU");
+                }
+                else if (nwkRadioButton.Checked)
+                {
+                    AddLogEntry("選択された接続タイプ: NWK");
+                }
+                else
+                {
+                    MessageBox.Show("接続タイプを選択してください。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
 
             checkStateButton.Click += (sender, e) =>
             {
@@ -496,12 +668,16 @@ namespace RoomKeypadManager
                     string ipAddress = ipAddressTextBox.Text.Trim();
                     string username = "x1s";
                     string password = "x1s";
+                    string nwk = "nwk";
 
                     if (string.IsNullOrWhiteSpace(ipAddress))
                     {
                         MessageBox.Show("IPアドレスを入力してください。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
+
+                    // 接続タイプの判定
+                    bool nwk_check = nwkRadioButton.Checked; // NWKが選択されている場合はtrue、MyRoomの場合はfalse
 
                     // 接続ステータスを更新
                     connectionStatusLabel.Text = "接続中...";
@@ -516,7 +692,7 @@ namespace RoomKeypadManager
                     telnetClientHelper.InitializeStream(stream);
 
                     // ログイン処理
-                    bool loginSuccess = await telnetClientHelper.LoginAsync(username, password);
+                    bool loginSuccess = await telnetClientHelper.LoginAsync(username, password, nwk, nwk_check);
                     if (loginSuccess)
                     {
                         isConnected = true;
@@ -570,7 +746,7 @@ namespace RoomKeypadManager
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
                 FixedPanel = FixedPanel.Panel2,
-                SplitterDistance = (int)(this.Height * 0.9)
+                SplitterDistance = (int)(this.Height * 0.8)
             };
 
             // 上部ログ出力エリア
@@ -889,5 +1065,44 @@ namespace RoomKeypadManager
 
 
 
+
+    // MainForm.cs に記載する関数
+    public void UpdateLightingStatusTabBrightness(string id, float brightness)
+        {
+            if (tabControl == null)
+            {
+                MessageBox.Show("TabControl が初期化されていません。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            foreach (TabPage tabPage in tabControl.TabPages)
+            {
+                if (tabPage.Text == "Lighting Status")
+                {
+                    foreach (Control control in tabPage.Controls)
+                    {
+                        if (control is TableLayoutPanel tableLayoutPanel)
+                        {
+                            foreach (Control childControl in tableLayoutPanel.Controls)
+                            {
+                                if (childControl is DataGridView lightingTable)
+                                {
+                                    foreach (DataGridViewRow row in lightingTable.Rows)
+                                    {
+                                        if (row.Cells["ColumnID"].Value?.ToString() == id)
+                                        {
+                                            row.Cells["ColumnValue"].Value = $"{brightness}%";
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-}
+
+
+    }
