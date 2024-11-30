@@ -21,19 +21,23 @@ public class TelnetClientHelper
     // structuredDataを管理
     private Dictionary<string, List<DeviceData>> structuredData;
 
+    // additionalDataを管理
+    private Dictionary<string, Dictionary<string, string>> additionalData;
+
     private bool isListening = false; // リスニング状態の管理
 
-    public TelnetClientHelper(Dictionary<string, List<DeviceData>> structuredData)
-    {
-        this.structuredData = structuredData;
-    }
+    //public TelnetClientHelper(Dictionary<string, List<DeviceData>> structuredData)
+    //{
+    //    this.structuredData = structuredData;
+    //}
 
     private MainForm mainFormInstance;
 
-    public TelnetClientHelper(MainForm mainForm, Dictionary<string, List<DeviceData>> structuredData)
+    public TelnetClientHelper(MainForm mainForm, Dictionary<string, List<DeviceData>> structuredData, Dictionary<string, Dictionary<string, string>> additionalData)
     {
         this.mainFormInstance = mainForm;
         this.structuredData = structuredData;
+        this.additionalData = additionalData;
     }
 
 
@@ -186,6 +190,19 @@ public class TelnetClientHelper
             }
         }
 
+        // Null チェック
+        if (additionalData == null)
+        {
+            logAction?.Invoke("[ERROR] additionalData が初期化されていません。");
+            return;
+        }
+
+        if (mainFormInstance == null)
+        {
+            logAction?.Invoke("[ERROR] mainFormInstance が初期化されていません。");
+            return;
+        }
+
         // 新規照度電文処理（~OUTPUT,ID,1,Brightness）
         Regex regexOutputBrightness = new Regex(@"~OUTPUT,(\d+),1,(\d{1,3}\.\d{1,2})");
         Match matchOutputBrightness = regexOutputBrightness.Match(message);
@@ -194,25 +211,46 @@ public class TelnetClientHelper
             string id = matchOutputBrightness.Groups[1].Value;
             float brightness = float.Parse(matchOutputBrightness.Groups[2].Value);
 
-            foreach (var roomKey in structuredData.Keys)
+            logAction?.Invoke($"[DEBUG] 照度更新電文を受信: ID={id}, Brightness={brightness}%");
+
+            // additionalData を参照して更新を試みる
+            foreach (var section in additionalData.Keys)
             {
-                var device = structuredData[roomKey].FirstOrDefault(d => d.ID == id);
-                if (device != null)
+                logAction?.Invoke($"[DEBUG] セクション: {section}");
+
+                // セクション内のデータを走査
+                foreach (var kvp in additionalData[section]) // kvp は KeyValuePair<string, string>
                 {
-                    // 照度を更新
-                    device.ActiveBrightness = (int)brightness;
+                    // KeyValuePairのKeyとIDを比較
+                    if (kvp.Value == id)
+                    {
+                        // MainForm のインスタンスを使って2個目のタブを更新
+                        try
+                        {
+                            mainFormInstance?.UpdateLightingStatusTabBrightness(id, brightness);
+                            logAction?.Invoke($"[INFO] ID: {id} の照度を {brightness}% に更新しました。");
+                        }
+                        catch (Exception ex)
+                        {
+                            logAction?.Invoke($"[ERROR] タブ更新中にエラーが発生: {ex.Message}");
+                        }
 
-                    // MainForm のインスタンスを使って2個目のタブを更新
-                    mainFormInstance?.UpdateLightingStatusTabBrightness(id, brightness);
-
-                    logAction?.Invoke($"[INFO] ID: {id} の照度を {brightness}% に更新しました。");
-                    return;
+                        return; // 更新が完了したので終了
+                    }
                 }
             }
+
+            //logAction?.Invoke($"[DEBUG] ID {id} に対応するデータが additionalData 内に見つかりません。");
         }
+        //else
+        //{
+        //    logAction?.Invoke($"[DEBUG] 照度更新の正規表現に一致しないメッセージ: {message}");
+        //}
+
     }
 
-    
+
+
 
     public void StartListening()
     {

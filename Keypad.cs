@@ -8,9 +8,9 @@ namespace RoomKeypadManager
     public class Keypad : UserControl
     {
         public string DeviceName { get; set; } // デバイス名を保持
+        public string DeviceID { get; private set; } // デバイスIDを公開
         private List<string> buttonNames; // ボタン名リスト
         private List<string> dColumns; // D列情報
-        private string deviceID; // デバイスID
         private Func<bool> isTelnetConnected; // Telnet接続確認用デリゲート
         private Func<int, bool?> getButtonState; // ボタン状態取得用デリゲート
         private Func<string, int> getActiveBrightness; // アクティブ照度取得用デリゲート
@@ -29,10 +29,10 @@ namespace RoomKeypadManager
             Func<string, int> getActiveBrightness,
             Func<string, int> getInactiveBrightness,
             Action<string> logAction,
-            Action<string> sendTelnetCommand) // コマンド送信用
+            Action<string> sendTelnetCommand)
         {
             this.DeviceName = deviceName;
-            this.deviceID = deviceID;
+            this.DeviceID = deviceID; // デバイスIDを設定
             this.buttonNames = buttonNames;
             this.dColumns = dColumns;
             this.isTelnetConnected = isTelnetConnected;
@@ -44,7 +44,6 @@ namespace RoomKeypadManager
 
             InitializeKeypad();
         }
-
 
         private void InitializeKeypad()
         {
@@ -87,7 +86,7 @@ namespace RoomKeypadManager
                     // Telnetでコマンド送信
                     if (isTelnetConnected())
                     {
-                        string telnetCommand = $"#DEVICE,{deviceID},{dColumnIndex},3";
+                        string telnetCommand = $"#DEVICE,{DeviceID},{dColumnIndex},3";
                         sendTelnetCommand?.Invoke(telnetCommand);
                         logAction?.Invoke($"[Telnet Command Sent] {telnetCommand}");
                     }
@@ -103,7 +102,7 @@ namespace RoomKeypadManager
                     // Telnetでコマンド送信
                     if (isTelnetConnected())
                     {
-                        string telnetCommand = $"#DEVICE,{deviceID},{dColumnIndex},4";
+                        string telnetCommand = $"#DEVICE,{DeviceID},{dColumnIndex},4";
                         sendTelnetCommand?.Invoke(telnetCommand);
                         logAction?.Invoke($"[Telnet Command Sent] {telnetCommand}");
                     }
@@ -130,8 +129,8 @@ namespace RoomKeypadManager
             if (isActive.HasValue)
             {
                 int brightness = isActive.Value
-                    ? getActiveBrightness(deviceID) // アクティブ状態の照度
-                    : getInactiveBrightness(deviceID); // インアクティブ状態の照度
+                    ? getActiveBrightness(DeviceID) // アクティブ状態の照度
+                    : getInactiveBrightness(DeviceID); // インアクティブ状態の照度
 
                 if (brightness == 0) // 照度が0の場合は黒
                 {
@@ -166,19 +165,15 @@ namespace RoomKeypadManager
         }
 
         /// <summary>
-        /// ボタンの状態を更新し、デザインに反映
+        /// 指定されたボタンの状態を更新
         /// </summary>
         /// <param name="buttonIndex">ボタン番号</param>
-        /// <param name="isActive">アクティブ状態</param>
-        public void UpdateButtonState(int buttonIndex, bool isActive)
+        public void UpdateButtonState(int buttonIndex)
         {
             if (buttonControls.ContainsKey(buttonIndex))
             {
-                // ボタン状態をデータとして更新
-                buttonControls[buttonIndex].Text = isActive ? "Active" : "Inactive";
-
-                // デザインを更新
-                UpdateButtonBacklight(buttonIndex, buttonControls[buttonIndex]);
+                var button = buttonControls[buttonIndex];
+                UpdateButtonBacklight(buttonIndex, button);
             }
         }
 

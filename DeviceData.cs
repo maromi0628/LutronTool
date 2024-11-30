@@ -1,16 +1,53 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 public class DeviceData
 {
-    public string DeviceName { get; set; }
-    public string Model { get; set; }
-    public string ID { get; set; }
-    public List<string> Buttons { get; set; } = new List<string>();
+    public string DeviceName { get; set; } // デバイス名
+    public string Model { get; set; } // モデル情報
+    public string ID { get; set; } // デバイスID
+    public List<string> Buttons { get; set; } = new List<string>(); // ボタン名リスト
     public List<string> DColumns { get; set; } = new List<string>(); // D列の情報
-    private Dictionary<int, bool> ButtonStates { get; set; } = new Dictionary<int, bool>(); // ボタン番号と状態
 
-    public int ActiveBrightness { get; set; } = -1;
-    public int InactiveBrightness { get; set; } = -1;
+    private Dictionary<int, bool> buttonStates = new Dictionary<int, bool>(); // ボタン状態の管理
+    private int activeBrightness = -1; // アクティブ状態のバックライト照度
+    private int inactiveBrightness = -1; // インアクティブ状態のバックライト照度
+
+    // データ変更イベント
+    public event Action<string> DataChanged; // IDを渡して通知
+    public event Action<string, int> ButtonStateChanged; // IDとボタン番号を渡して通知
+
+    /// <summary>
+    /// アクティブ状態のバックライト照度を取得または設定
+    /// </summary>
+    public int ActiveBrightness
+    {
+        get => activeBrightness;
+        set
+        {
+            if (activeBrightness != value)
+            {
+                activeBrightness = value;
+                OnDataChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// インアクティブ状態のバックライト照度を取得または設定
+    /// </summary>
+    public int InactiveBrightness
+    {
+        get => inactiveBrightness;
+        set
+        {
+            if (inactiveBrightness != value)
+            {
+                inactiveBrightness = value;
+                OnDataChanged();
+            }
+        }
+    }
 
     /// <summary>
     /// ボタンの状態を設定
@@ -19,13 +56,10 @@ public class DeviceData
     /// <param name="isActive">アクティブ状態なら true、インアクティブなら false</param>
     public void SetButtonState(int buttonIndex, bool isActive)
     {
-        if (!ButtonStates.ContainsKey(buttonIndex))
+        if (!buttonStates.ContainsKey(buttonIndex) || buttonStates[buttonIndex] != isActive)
         {
-            ButtonStates.Add(buttonIndex, isActive);
-        }
-        else
-        {
-            ButtonStates[buttonIndex] = isActive; // 状態を更新
+            buttonStates[buttonIndex] = isActive;
+            OnButtonStateChanged(buttonIndex); // ボタン変更イベントを発火
         }
     }
 
@@ -36,77 +70,33 @@ public class DeviceData
     /// <returns>アクティブ状態なら true、インアクティブなら false、未設定なら null</returns>
     public bool? GetButtonState(int buttonIndex)
     {
-        return ButtonStates.TryGetValue(buttonIndex, out var state) ? (bool?)state : null;
+        return buttonStates.TryGetValue(buttonIndex, out var state) ? (bool?)state : null;
     }
 
     /// <summary>
     /// 全ボタンの状態を取得
     /// </summary>
-    /// <returns>全ボタンの状態を格納した辞書</returns>
+    /// <returns>ボタン番号とその状態の辞書</returns>
     public Dictionary<int, bool> GetAllButtonStates()
     {
-        return new Dictionary<int, bool>(ButtonStates);
+        return new Dictionary<int, bool>(buttonStates);
     }
 
     /// <summary>
-    /// 指定されたボタンがアクティブ状態か確認する
+    /// データ変更時のイベントをトリガー
     /// </summary>
-    /// <param name="buttonIndex">ボタン番号 (1から始まる)</param>
-    /// <returns>アクティブ状態なら true、インアクティブなら false、未設定なら null</returns>
-    public bool? IsButtonActive(int buttonIndex)
+    private void OnDataChanged()
     {
-        return GetButtonState(buttonIndex);
+        DataChanged?.Invoke(ID); // ID を渡してイベントを通知
     }
 
     /// <summary>
-    /// 全てのボタンがアクティブ状態か確認する
+    /// ボタン変更イベントをトリガー
     /// </summary>
-    /// <returns>すべてのボタンがアクティブ状態なら true、それ以外なら false</returns>
-    public bool AreAllButtonsActive()
+    /// <param name="buttonIndex">変更されたボタン番号</param>
+    private void OnButtonStateChanged(int buttonIndex)
     {
-        foreach (var state in ButtonStates.Values)
-        {
-            if (!state) // 一つでもインアクティブ状態があれば false を返す
-            {
-                return false;
-            }
-        }
-        return ButtonStates.Count > 0; // ボタンが1つ以上あり、すべてがアクティブの場合 true
-    }
-
-    /// <summary>
-    /// アクティブなボタンのリストを取得する
-    /// </summary>
-    /// <returns>アクティブ状態のボタン番号リスト</returns>
-    public List<int> GetActiveButtons()
-    {
-        var activeButtons = new List<int>();
-        foreach (var entry in ButtonStates)
-        {
-            if (entry.Value) // アクティブなボタン
-            {
-                activeButtons.Add(entry.Key);
-            }
-        }
-        return activeButtons;
-    }
-
-    /// <summary>
-    /// アクティブ状態のバックライト照度を取得
-    /// </summary>
-    /// <returns>アクティブ状態の照度 (0～100)</returns>
-    public int GetActiveBrightness()
-    {
-        return ActiveBrightness; // 既存プロパティを返す
-    }
-
-    /// <summary>
-    /// インアクティブ状態のバックライト照度を取得
-    /// </summary>
-    /// <returns>インアクティブ状態の照度 (0～100)</returns>
-    public int GetInactiveBrightness()
-    {
-        return InactiveBrightness; // 既存プロパティを返す
+        ButtonStateChanged?.Invoke(ID, buttonIndex); // ID とボタン番号を通知
     }
 
     /// <summary>
@@ -116,7 +106,7 @@ public class DeviceData
     public string GetButtonStatesAsString()
     {
         var stateStrings = new List<string>();
-        foreach (var kvp in ButtonStates)
+        foreach (var kvp in buttonStates)
         {
             stateStrings.Add($"Button {kvp.Key}: {(kvp.Value ? "Active" : "Inactive")}");
         }

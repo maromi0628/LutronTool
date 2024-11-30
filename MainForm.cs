@@ -32,7 +32,11 @@ namespace RoomKeypadManager
                 (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(filePath);
 
                 // structuredDataを渡してTelnetClientHelperを初期化
-                telnetClientHelper = new TelnetClientHelper(structuredData);
+                //telnetClientHelper = new TelnetClientHelper(structuredData);
+                telnetClientHelper = new TelnetClientHelper(this, structuredData, additionalData);
+
+                // デバイス変更の監視を開始
+                MonitorDeviceChanges();
 
                 InitializeUI();
             }
@@ -84,7 +88,7 @@ namespace RoomKeypadManager
         {
             responseProcessingTimer = new System.Windows.Forms.Timer
             {
-                Interval = 50
+                Interval =100
             };
 
             responseProcessingTimer.Tick += (sender, e) =>
@@ -130,8 +134,8 @@ namespace RoomKeypadManager
             this.Text = "Room Keypad Manager";
             this.WindowState = FormWindowState.Maximized;
 
-            // タブコントロールの作成
-            TabControl tabControl = new TabControl
+            // クラスフィールドの tabControl を初期化
+            tabControl = new TabControl
             {
                 Dock = DockStyle.Fill
             };
@@ -142,26 +146,24 @@ namespace RoomKeypadManager
                 BackColor = Color.White
             };
 
-            // 2つ目のタブ: 照明のステータス画面（空白）
+            // 2つ目のタブ: 照明のステータス画面
             TabPage lightingStatusTab = new TabPage("Lighting Status")
             {
                 BackColor = Color.White
             };
 
-            // 1つ目のタブに現在のUIを配置
+            // 1つ目のタブに UI を配置
             InitializeRoomKeypadManagerTab(roomKeypadTab);
 
-            // 2つ目のタブは空白の状態で設定
-            //InitializeLightingStatusTab(lightingStatusTab);
-
-            // タブコントロールにタブを追加
+            // タブを追加
             tabControl.TabPages.Add(roomKeypadTab);
             tabControl.TabPages.Add(lightingStatusTab);
 
-            // メインフォームにタブコントロールを追加
-            this.Controls.Clear(); // 他のコントロールを削除してリセット
-            this.Controls.Add(tabControl); // タブコントロールをメインに追加
+            // フォームに tabControl を追加
+            this.Controls.Clear();
+            this.Controls.Add(tabControl);
         }
+
 
         private void InitializeLightingStatusTab(TabPage lightingStatusTab)
         {
@@ -684,7 +686,8 @@ namespace RoomKeypadManager
                     connectionStatusLabel.ForeColor = Color.Blue;
 
                     // Telnet接続初期化
-                    telnetClientHelper = new TelnetClientHelper(structuredData);
+                    //telnetClientHelper = new TelnetClientHelper(structuredData);
+                    telnetClientHelper = new TelnetClientHelper(this, structuredData, additionalData);
 
                     TcpClient tcpClient = new TcpClient();
                     await tcpClient.ConnectAsync(ipAddress, 23);
@@ -709,7 +712,7 @@ namespace RoomKeypadManager
                         await telnetClientHelper.SendCommandAsync(getTimeCommand);
                         AddLogEntry($"GETTIMEコマンドを送信しました。");
 
-                        await telnetClientHelper.SendBacklightBrightnessCommandsForKeypads(structuredData, AddLogEntry);
+                        //await telnetClientHelper.SendBacklightBrightnessCommandsForKeypads(structuredData, AddLogEntry);
                         AddLogEntry("キーパッドのバックライト確認コマンドを送信しました。");
                     }
                     else
@@ -965,35 +968,47 @@ namespace RoomKeypadManager
                         AutoSizeMode = AutoSizeMode.GrowAndShrink
                     };
 
+                    // キーパッドのインスタンスを作成
                     Keypad keypad = new Keypad(
-                        device.DeviceName, // デバイス名
-                        device.ID,         // デバイスID
-                        device.Buttons,    // ボタン名リスト (CSV の F 列データ)
-                        device.DColumns,   // D列情報
-                        () => isConnected, // Telnet接続確認
-                        (buttonIndex) => device.GetButtonState(buttonIndex), // ボタン状態取得
-                        (id) => structuredData[selectedRoomKey].First(d => d.ID == id).ActiveBrightness, // アクティブ照度取得
-                        (id) => structuredData[selectedRoomKey].First(d => d.ID == id).InactiveBrightness, // インアクティブ照度取得
-                        AddLogEntry, // ログ出力
-                        (command) => telnetClientHelper.SendCommandAsync(command)) // コマンド送信
+                        device.DeviceName,
+                        device.ID,
+                        device.Buttons,
+                        device.DColumns,
+                        () => isConnected,
+                        (buttonIndex) => device.GetButtonState(buttonIndex),
+                        (id) => structuredData[selectedRoomKey].First(d => d.ID == id).ActiveBrightness,
+                        (id) => structuredData[selectedRoomKey].First(d => d.ID == id).InactiveBrightness,
+                        AddLogEntry,
+                        (command) => telnetClientHelper.SendCommandAsync(command))
                     {
-                        Name = group.Key, // デバイス名をキーとして設定（例: "SW2"）
+                        Name = device.ID, // DeviceID を Name に設定
                         Margin = new Padding(5)
                     };
+
+                    // ログに追加情報を記録
+                    //AddLogEntry($"[DEBUG] Adding Keypad: {keypad.DeviceName}, ID: {keypad.DeviceID}, Name: {keypad.Name}");
 
                     // キーパッドを枠内に追加
                     keypadContainer.Controls.Add(keypad);
                     groupFlowPanel.Controls.Add(keypadContainer);
                 }
 
-
-
                 mainFlowPanel.Controls.Add(groupFlowPanel);
             }
 
+            // `debugPanel` に追加
             debugPanel.Controls.Add(mainFlowPanel);
+
+            // 確認用ログを出力
+            AddLogEntry($"[DEBUG] Finished adding keypads to debugPanel. Total groups: {groupedDevices.Count}");
+            foreach (Control control in debugPanel.Controls)
+            {
+                AddLogEntry($"[DEBUG] Control in debugPanel: {control.GetType().Name}");
+            }
+
             debugPanel.Update();
         }
+
 
 
         private void AddLogEntry(string logMessage)
@@ -1066,12 +1081,13 @@ namespace RoomKeypadManager
 
 
 
-    // MainForm.cs に記載する関数
-    public void UpdateLightingStatusTabBrightness(string id, float brightness)
+        // MainForm.cs に記載する関数
+        // 2個目のタブを更新する関数
+        public void UpdateLightingStatusTabBrightness(string id, float brightness)
         {
             if (tabControl == null)
             {
-                MessageBox.Show("TabControl が初期化されていません。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine("[ERROR] tabControl が null です。");
                 return;
             }
 
@@ -1089,9 +1105,16 @@ namespace RoomKeypadManager
                                 {
                                     foreach (DataGridViewRow row in lightingTable.Rows)
                                     {
-                                        if (row.Cells["ColumnID"].Value?.ToString() == id)
+                                        if (row.Cells["ColumnID"].Value == null)
+                                        {
+                                            Console.WriteLine($"[DEBUG] ID 列の値が null です。行: {row.Index}");
+                                            continue;
+                                        }
+
+                                        if (row.Cells["ColumnID"].Value.ToString() == id)
                                         {
                                             row.Cells["ColumnValue"].Value = $"{brightness}%";
+                                            Console.WriteLine($"[INFO] ID: {id} の行を更新しました。");
                                             return;
                                         }
                                     }
@@ -1101,8 +1124,85 @@ namespace RoomKeypadManager
                     }
                 }
             }
+
+            Console.WriteLine($"[DEBUG] ID: {id} に一致する行が見つかりませんでした。");
         }
-    }
+
+        private void MonitorDeviceChanges()
+        {
+            foreach (var roomDevices in structuredData.Values)
+            {
+                foreach (var device in roomDevices)
+                {
+                    // ボタンの状態が変化したときのイベントをサブスクライブ
+                    device.ButtonStateChanged += (deviceID, buttonIndex) =>
+                    {
+                        //AddLogEntry($"[DEBUG] UpdateKeypadButton called with DeviceID: {deviceID}, ButtonIndex: {buttonIndex}");
+
+                        UpdateKeypadButton(deviceID, buttonIndex);
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// 指定されたデバイスのボタンを更新
+        /// </summary>
+        /// <param name="deviceID">デバイスID</param>
+        /// <param name="buttonIndex">ボタン番号</param>
+        private void UpdateKeypadButton(string deviceID, int buttonIndex)
+        {
+            if (debugPanel.InvokeRequired)
+            {
+                debugPanel.Invoke(new Action(() => UpdateKeypadButton(deviceID, buttonIndex)));
+                return;
+            }
+
+            //AddLogEntry($"[DEBUG] Searching for Keypad with DeviceID: {deviceID}");
+
+            // 再帰的に debugPanel 内のすべてのコントロールを探索
+            bool found = false;
+            foreach (Control control in debugPanel.Controls)
+            {
+                found = SearchAndUpdateKeypad(control, deviceID, buttonIndex);
+                if (found) break;
+            }
+
+            if (!found)
+            {
+                AddLogEntry($"[WARN] デバイス {deviceID} に対応するキーパッドが見つかりませんでした。");
+            }
+        }
+
+        private bool SearchAndUpdateKeypad(Control control, string deviceID, int buttonIndex)
+        {
+            //AddLogEntry($"[DEBUG] Control: {control.Name}, Type: {control.GetType()}");
+
+            // Keypad の場合、条件をチェック
+            if (control is Keypad keypad)
+            {
+                //AddLogEntry($"[DEBUG] Found Keypad: {keypad.DeviceName}, ID: {keypad.DeviceID}");
+                if (keypad.DeviceID == deviceID)
+                {
+                    //AddLogEntry($"[INFO] Updating Keypad: {keypad.DeviceName}, ID: {deviceID}");
+                    keypad.UpdateButtonState(buttonIndex);
+                    return true;
+                }
+            }
+
+            // 子コントロールが存在する場合、再帰的に探索
+            foreach (Control child in control.Controls)
+            {
+                if (SearchAndUpdateKeypad(child, deviceID, buttonIndex))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
 
     }
+
+}

@@ -10,8 +10,6 @@ namespace RoomKeypadManager
         {
             var structuredData = new Dictionary<string, List<DeviceData>>();
             var additionalData = new Dictionary<string, Dictionary<string, string>>();
-
-            var deviceNameCounter = new Dictionary<string, int>(); // デバイス名のカウンタ
             string lastRoomKey = null; // 直前の部屋キーを保持
             string lastDeviceName = null; // 直前のデバイス名を保持
             string lastDeviceID = null;   // 直前のデバイスIDを保持
@@ -29,6 +27,9 @@ namespace RoomKeypadManager
                 // --- 1週目: 既存のデバイスデータ処理 ---
                 while ((line = reader.ReadLine()) != null)
                 {
+                    // 制御文字を除去
+                    line = line.Replace("\u200E", "");
+
                     string[] columns = line.Split(',');
 
                     // 必須列がない行をスキップ
@@ -42,6 +43,12 @@ namespace RoomKeypadManager
                     string id = columns[2];       // C列: ID
                     string dColumn = columns[3];  // D列: 判定用
                     string fColumn = columns[5];  // F列: ボタン名
+
+                    // 不要な末尾の文字列を削除
+                    if (!string.IsNullOrWhiteSpace(fullPath) && (fullPath.EndsWith("CSD 001") || fullPath.EndsWith("Device 1")))
+                    {
+                        fullPath = fullPath.Substring(0, fullPath.LastIndexOf("\\"));
+                    }
 
                     // C列 (ID) の処理
                     if (!string.IsNullOrWhiteSpace(id) && id.Contains("/"))
@@ -75,17 +82,17 @@ namespace RoomKeypadManager
                     // A列が空白の場合、直前の部屋キーとデバイス名を使用
                     if (string.IsNullOrWhiteSpace(fullPath) && !string.IsNullOrWhiteSpace(lastRoomKey) && !string.IsNullOrWhiteSpace(lastDeviceName))
                     {
-                        fullPath = $"{lastRoomKey}/{lastDeviceName}";
+                        fullPath = $"{lastRoomKey}\\{lastDeviceName}";
                     }
 
-                    if (string.IsNullOrWhiteSpace(fullPath) || !fullPath.Contains("/"))
+                    if (string.IsNullOrWhiteSpace(fullPath) || !fullPath.Contains("\\"))
                     {
                         continue; // 無効なデータをスキップ
                     }
 
                     // 部屋キーとデバイス名を分割
-                    string[] parts = fullPath.Split('/');
-                    string roomKey = string.Join("/", parts.Take(parts.Length - 1)); // 部屋キー
+                    string[] parts = fullPath.Split('\\');
+                    string roomKey = string.Join("\\", parts.Take(parts.Length - 1)); // 部屋キー
                     string deviceName = parts.Last(); // デバイス名
 
                     // ボタン情報を取得
@@ -119,79 +126,43 @@ namespace RoomKeypadManager
                     lastDeviceID = id;
                 }
 
-                // --- 2週目: 新しいデータを取得 ---
+                // --- 2週目: 追加データの処理 ---
                 reader.BaseStream.Seek(0, SeekOrigin.Begin); // ファイルの先頭に戻る
                 reader.DiscardBufferedData();
 
-                // 最初の6行をスキップ
                 for (int i = 0; i < 6; i++)
                 {
                     reader.ReadLine();
                 }
 
-                string currentSection = null; // 現在のセクション ("Zone Name", "HVAC Zone Name", etc.)
-                bool terminateAfterThermostatMode = false; // 処理を終了するフラグ
+                string currentSection = null;
 
                 while ((line = reader.ReadLine()) != null)
                 {
                     string[] columns = line.Split(',');
 
-                    // A列の内容を確認
                     string aColumn = columns.Length > 0 ? columns[0] : null;
                     string bColumn = columns.Length > 1 ? columns[1] : null;
 
-                    // B列の値を処理
-                    if (!string.IsNullOrWhiteSpace(bColumn) && bColumn.Contains("/"))
-                    {
-                        bColumn = bColumn.Substring(bColumn.LastIndexOf("/") + 1);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(aColumn) && aColumn.Contains("Lutron Electronics"))
-                    {
-                        break; // 処理終了
-                    }
-
-                    // セクション開始を判定
-                    if (aColumn.Equals("Zone Name"))
+                    // セクションの切り替え
+                    if (aColumn == "Zone Name")
                     {
                         currentSection = "Zone Name";
                         continue;
                     }
-                    else if (aColumn.Equals("HVAC Zone Name"))
-                    {
-                        currentSection = "HVAC Zone Name";
-                        continue;
-                    }
-                    else if (aColumn.Equals("Variable Name"))
-                    {
-                        currentSection = "Variable Name";
-                        continue;
-                    }
-                    else if (aColumn.Equals("Thermostat Mode"))
-                    {
-                        currentSection = "Thermostat Mode";
-                        //terminateAfterThermostatMode = true; // 次に空白が来たら終了
-                        continue;
-                    }
 
-                    // 現在のセクションに基づいてデータを記録
-                    if (!string.IsNullOrWhiteSpace(currentSection))
+                    if (!string.IsNullOrWhiteSpace(currentSection) && !string.IsNullOrWhiteSpace(aColumn) && !string.IsNullOrWhiteSpace(bColumn))
                     {
                         if (!additionalData.ContainsKey(currentSection))
                         {
                             additionalData[currentSection] = new Dictionary<string, string>();
                         }
 
-                        if (!string.IsNullOrWhiteSpace(aColumn) && !string.IsNullOrWhiteSpace(bColumn))
-                        {
-                            additionalData[currentSection][aColumn] = bColumn;
-                        }
+                        additionalData[currentSection][aColumn] = bColumn;
                     }
                 }
-
             }
 
-            // structuredData に additionalData を追加して戻すか、別途返却可能
             return (structuredData, additionalData);
         }
     }
