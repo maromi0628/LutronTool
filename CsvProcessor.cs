@@ -158,7 +158,14 @@ namespace RoomKeypadManager
                             additionalData[currentSection] = new Dictionary<string, string>();
                         }
 
-                        additionalData[currentSection][aColumn] = bColumn;
+                        string id = bColumn;
+                        if (!string.IsNullOrWhiteSpace(id) && id.Contains("/"))
+                        {
+                            // 最後のバックスラッシュ以降の文字列を取得
+                            id = id.Substring(id.LastIndexOf("/") + 1);
+                        }
+                        //additionalData[currentSection][aColumn] = bColumn;
+                        additionalData[currentSection][aColumn] = id;
                     }
                 }
             }

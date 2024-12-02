@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -10,14 +10,14 @@ namespace RoomKeypadManager
     public partial class MainForm : Form
     {
         private Dictionary<string, List<DeviceData>> structuredData;
-        private Dictionary<string, Dictionary<string, string>> additionalData; // ’Ç‰Áƒf[ƒ^—p
+        private Dictionary<string, Dictionary<string, string>> additionalData; // è¿½åŠ ãƒ‡ãƒ¼ã‚¿ç”¨
         private ComboBox roomKeySelector;
         private DataGridView deviceTable;
         private Panel debugPanel;
         private ListBox logListBox;
         private TelnetClientHelper telnetClientHelper = null;
         private bool isConnected = false;
-        private TabControl tabControl; // ƒNƒ‰ƒXƒŒƒxƒ‹‚ÅéŒ¾
+        private TabControl tabControl; // ã‚¯ãƒ©ã‚¹ãƒ¬ãƒ™ãƒ«ã§å®£è¨€
 
 
 
@@ -28,39 +28,39 @@ namespace RoomKeypadManager
 
             if (SelectCsvFile(out string filePath))
             {
-                // CSVƒtƒ@ƒCƒ‹‚ğˆ—
+                // CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’å‡¦ç†
                 (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(filePath);
 
-                // structuredData‚ğ“n‚µ‚ÄTelnetClientHelper‚ğ‰Šú‰»
+                // structuredDataã‚’æ¸¡ã—ã¦TelnetClientHelperã‚’åˆæœŸåŒ–
                 //telnetClientHelper = new TelnetClientHelper(structuredData);
                 telnetClientHelper = new TelnetClientHelper(this, structuredData, additionalData);
 
-                // ƒfƒoƒCƒX•ÏX‚ÌŠÄ‹‚ğŠJn
+                // ãƒ‡ãƒã‚¤ã‚¹å¤‰æ›´ã®ç›£è¦–ã‚’é–‹å§‹
                 MonitorDeviceChanges();
 
                 InitializeUI();
             }
             else
             {
-                MessageBox.Show("CSVƒtƒ@ƒCƒ‹‚ª‘I‘ğ‚³‚ê‚Ü‚¹‚ñ‚Å‚µ‚½BƒAƒvƒŠ‚ğI—¹‚µ‚Ü‚·B", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("CSVãƒ•ã‚¡ã‚¤ãƒ«ãŒé¸æŠã•ã‚Œã¾ã›ã‚“ã§ã—ãŸã€‚ã‚¢ãƒ—ãƒªã‚’çµ‚äº†ã—ã¾ã™ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 this.Close();
             }
 
-            // ƒ^ƒuƒRƒ“ƒgƒ[ƒ‹‚©‚ç Lighting Status ƒ^ƒu‚ğæ“¾
+            // ã‚¿ãƒ–ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ«ã‹ã‚‰ Lighting Status ã‚¿ãƒ–ã‚’å–å¾—
             TabPage lightingStatusTab = GetLightingStatusTab();
 
-            // Lighting Status ƒ^ƒu‚ğ‰Šú‰»
+            // Lighting Status ã‚¿ãƒ–ã‚’åˆæœŸåŒ–
             if (lightingStatusTab != null)
             {
                 InitializeLightingStatusTab(lightingStatusTab);
             }
             else
             {
-                MessageBox.Show("Lighting Status ƒ^ƒu‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lighting Status ã‚¿ãƒ–ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // ƒ^ƒuƒRƒ“ƒgƒ[ƒ‹‚©‚ç Lighting Status ƒ^ƒu‚ğæ“¾‚·‚éƒwƒ‹ƒp[ƒƒ\ƒbƒh
+        // ã‚¿ãƒ–ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ«ã‹ã‚‰ Lighting Status ã‚¿ãƒ–ã‚’å–å¾—ã™ã‚‹ãƒ˜ãƒ«ãƒ‘ãƒ¼ãƒ¡ã‚½ãƒƒãƒ‰
         private TabPage GetLightingStatusTab()
         {
             foreach (Control control in this.Controls)
@@ -106,22 +106,22 @@ namespace RoomKeypadManager
         {
             foreach (var room in structuredData.Keys)
             {
-                AddLogEntry($"[INFO] •”‰®: {room}");
+                AddLogEntry($"[INFO] éƒ¨å±‹: {room}");
                 foreach (var device in structuredData[room])
                 {
-                    AddLogEntry($"[INFO] ƒfƒoƒCƒX: {device.DeviceName}, ID: {device.ID}");
+                    AddLogEntry($"[INFO] ãƒ‡ãƒã‚¤ã‚¹: {device.DeviceName}, ID: {device.ID}");
 
                     foreach (var buttonIndex in Enumerable.Range(1, device.Buttons.Count))
                     {
                         bool? buttonState = device.GetButtonState(buttonIndex);
                         string stateText = buttonState.HasValue
-                            ? (buttonState.Value ? "ƒAƒNƒeƒBƒu" : "ƒCƒ“ƒAƒNƒeƒBƒu")
-                            : "ó‘Ô•s–¾";
+                            ? (buttonState.Value ? "ã‚¢ã‚¯ãƒ†ã‚£ãƒ–" : "ã‚¤ãƒ³ã‚¢ã‚¯ãƒ†ã‚£ãƒ–")
+                            : "çŠ¶æ…‹ä¸æ˜";
 
-                        AddLogEntry($"  ƒ{ƒ^ƒ“: {device.Buttons[buttonIndex - 1]} (Index: {buttonIndex}), ó‘Ô: {stateText}");
+                        AddLogEntry($"  ãƒœã‚¿ãƒ³: {device.Buttons[buttonIndex - 1]} (Index: {buttonIndex}), çŠ¶æ…‹: {stateText}");
                     }
 
-                    AddLogEntry($"[DEBUG] ‘Sƒ{ƒ^ƒ“ó‘Ô: {device.GetButtonStatesAsString()}");
+                    AddLogEntry($"[DEBUG] å…¨ãƒœã‚¿ãƒ³çŠ¶æ…‹: {device.GetButtonStatesAsString()}");
                 }
             }
         }
@@ -134,32 +134,32 @@ namespace RoomKeypadManager
             this.Text = "Room Keypad Manager";
             this.WindowState = FormWindowState.Maximized;
 
-            // ƒNƒ‰ƒXƒtƒB[ƒ‹ƒh‚Ì tabControl ‚ğ‰Šú‰»
+            // ã‚¯ãƒ©ã‚¹ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰ã® tabControl ã‚’åˆæœŸåŒ–
             tabControl = new TabControl
             {
                 Dock = DockStyle.Fill
             };
 
-            // 1‚Â–Ú‚Ìƒ^ƒu: Room Keypad Manager
+            // 1ã¤ç›®ã®ã‚¿ãƒ–: Room Keypad Manager
             TabPage roomKeypadTab = new TabPage("Room Keypad Manager")
             {
                 BackColor = Color.White
             };
 
-            // 2‚Â–Ú‚Ìƒ^ƒu: Æ–¾‚ÌƒXƒe[ƒ^ƒX‰æ–Ê
+            // 2ã¤ç›®ã®ã‚¿ãƒ–: ç…§æ˜ã®ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ç”»é¢
             TabPage lightingStatusTab = new TabPage("Lighting Status")
             {
                 BackColor = Color.White
             };
 
-            // 1‚Â–Ú‚Ìƒ^ƒu‚É UI ‚ğ”z’u
+            // 1ã¤ç›®ã®ã‚¿ãƒ–ã« UI ã‚’é…ç½®
             InitializeRoomKeypadManagerTab(roomKeypadTab);
 
-            // ƒ^ƒu‚ğ’Ç‰Á
+            // ã‚¿ãƒ–ã‚’è¿½åŠ 
             tabControl.TabPages.Add(roomKeypadTab);
             tabControl.TabPages.Add(lightingStatusTab);
 
-            // ƒtƒH[ƒ€‚É tabControl ‚ğ’Ç‰Á
+            // ãƒ•ã‚©ãƒ¼ãƒ ã« tabControl ã‚’è¿½åŠ 
             this.Controls.Clear();
             this.Controls.Add(tabControl);
         }
@@ -169,10 +169,10 @@ namespace RoomKeypadManager
         {
             if (additionalData == null || additionalData.Count == 0)
             {
-                // ƒf[ƒ^‚ª‚È‚¢ê‡‚ÌƒvƒŒ[ƒXƒzƒ‹ƒ_
+                // ãƒ‡ãƒ¼ã‚¿ãŒãªã„å ´åˆã®ãƒ—ãƒ¬ãƒ¼ã‚¹ãƒ›ãƒ«ãƒ€
                 Label placeholder = new Label
                 {
-                    Text = "Æ–¾‚ÌƒXƒe[ƒ^ƒXƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñB",
+                    Text = "ç…§æ˜ã®ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“ã€‚",
                     Dock = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleCenter,
                     Font = new Font(FontFamily.GenericSansSerif, 16, FontStyle.Bold)
@@ -182,7 +182,7 @@ namespace RoomKeypadManager
                 return;
             }
 
-            // ‘S‘Ì‚ğc•ûŒü‚É•À‚×‚éPanel
+            // å…¨ä½“ã‚’ç¸¦æ–¹å‘ã«ä¸¦ã¹ã‚‹Panel
             var mainPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -192,10 +192,10 @@ namespace RoomKeypadManager
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink
             };
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // ã•”: ƒ`ƒFƒbƒNƒ{ƒbƒNƒXƒGƒŠƒA
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // ‰º•”: ƒf[ƒ^ƒe[ƒuƒ‹ƒGƒŠƒA
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // ä¸Šéƒ¨: ãƒã‚§ãƒƒã‚¯ãƒœãƒƒã‚¯ã‚¹ã‚¨ãƒªã‚¢
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // ä¸‹éƒ¨: ãƒ‡ãƒ¼ã‚¿ãƒ†ãƒ¼ãƒ–ãƒ«ã‚¨ãƒªã‚¢
 
-            // ƒZƒNƒVƒ‡ƒ“‚Ì‘I‘ğƒGƒŠƒA
+            // ã‚»ã‚¯ã‚·ãƒ§ãƒ³ã®é¸æŠã‚¨ãƒªã‚¢
             var sectionFilterPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Top,
@@ -205,7 +205,7 @@ namespace RoomKeypadManager
                 BackColor = Color.White
             };
 
-            // DataGridView‚ğì¬
+            // DataGridViewã‚’ä½œæˆ
             var lightingTable = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -216,41 +216,41 @@ namespace RoomKeypadManager
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect
             };
 
-            // ƒJƒ‰ƒ€‚ğ’Ç‰Á (—ñ•‚ğw’è)
+            // ã‚«ãƒ©ãƒ ã‚’è¿½åŠ  (åˆ—å¹…ã‚’æŒ‡å®š)
             var sectionColumn = new DataGridViewTextBoxColumn
             {
                 Name = "ColumnSection",
-                HeaderText = "ƒZƒNƒVƒ‡ƒ“",
-                FillWeight = 10 // •‚ÌŠ„‡i10%j
+                HeaderText = "ã‚»ã‚¯ã‚·ãƒ§ãƒ³",
+                FillWeight = 10 // å¹…ã®å‰²åˆï¼ˆ10%ï¼‰
             };
 
             var keyColumn = new DataGridViewTextBoxColumn
             {
                 Name = "ColumnKey",
-                HeaderText = "ƒL[",
-                FillWeight = 50 // •‚ÌŠ„‡i50%j
+                HeaderText = "ã‚­ãƒ¼",
+                FillWeight = 50 // å¹…ã®å‰²åˆï¼ˆ50%ï¼‰
             };
 
             var idColumn = new DataGridViewTextBoxColumn
             {
                 Name = "ColumnID",
                 HeaderText = "ID",
-                FillWeight = 10 // •‚ÌŠ„‡i10%j
+                FillWeight = 10 // å¹…ã®å‰²åˆï¼ˆ10%ï¼‰
             };
 
             var valueColumn = new DataGridViewTextBoxColumn
             {
                 Name = "ColumnValue",
-                HeaderText = "’l",
-                FillWeight = 30 // •‚ÌŠ„‡i30%j
+                HeaderText = "å€¤",
+                FillWeight = 30 // å¹…ã®å‰²åˆï¼ˆ30%ï¼‰
             };
 
             lightingTable.Columns.AddRange(sectionColumn, keyColumn, idColumn, valueColumn);
 
-            // ƒZƒNƒVƒ‡ƒ“‚²‚Æ‚Ì•\¦ŠÇ—
+            // ã‚»ã‚¯ã‚·ãƒ§ãƒ³ã”ã¨ã®è¡¨ç¤ºç®¡ç†
             Dictionary<string, bool> sectionVisibility = additionalData.Keys.ToDictionary(section => section, section => true);
 
-            // ƒZƒNƒVƒ‡ƒ“ƒtƒBƒ‹ƒ^—pƒ`ƒFƒbƒNƒ{ƒbƒNƒX‚ğì¬
+            // ã‚»ã‚¯ã‚·ãƒ§ãƒ³ãƒ•ã‚£ãƒ«ã‚¿ç”¨ãƒã‚§ãƒƒã‚¯ãƒœãƒƒã‚¯ã‚¹ã‚’ä½œæˆ
             foreach (var section in additionalData.Keys)
             {
                 CheckBox sectionCheckBox = new CheckBox
@@ -270,30 +270,30 @@ namespace RoomKeypadManager
                 sectionFilterPanel.Controls.Add(sectionCheckBox);
             }
 
-            // ƒf[ƒ^‚ğXV‚·‚éƒƒWƒbƒN
+            // ãƒ‡ãƒ¼ã‚¿ã‚’æ›´æ–°ã™ã‚‹ãƒ­ã‚¸ãƒƒã‚¯
             void UpdateLightingTable()
             {
-                lightingTable.Rows.Clear(); // Šù‘¶‚Ìs‚ğƒNƒŠƒA
+                lightingTable.Rows.Clear(); // æ—¢å­˜ã®è¡Œã‚’ã‚¯ãƒªã‚¢
 
                 foreach (var section in additionalData.Keys)
                 {
-                    if (!sectionVisibility[section]) continue; // ”ñ•\¦‚ÌƒZƒNƒVƒ‡ƒ“‚ÍƒXƒLƒbƒv
+                    if (!sectionVisibility[section]) continue; // éè¡¨ç¤ºã®ã‚»ã‚¯ã‚·ãƒ§ãƒ³ã¯ã‚¹ã‚­ãƒƒãƒ—
 
                     foreach (var item in additionalData[section])
                     {
-                        lightingTable.Rows.Add(section, item.Key, item.Value, ""); // ’l—ñ‚É‚Í‹ó”’‚ğ‘}“ü
+                        lightingTable.Rows.Add(section, item.Key, item.Value, ""); // å€¤åˆ—ã«ã¯ç©ºç™½ã‚’æŒ¿å…¥
                     }
                 }
             }
 
-            // ‰Šúƒf[ƒ^‚ğ’Ç‰Á
+            // åˆæœŸãƒ‡ãƒ¼ã‚¿ã‚’è¿½åŠ 
             UpdateLightingTable();
 
-            // ƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ”z’u
+            // ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’é…ç½®
             mainPanel.Controls.Add(sectionFilterPanel, 0, 0);
             mainPanel.Controls.Add(lightingTable, 0, 1);
 
-            // ì¬‚µ‚½Panel‚ğƒ^ƒu‚É’Ç‰Á
+            // ä½œæˆã—ãŸPanelã‚’ã‚¿ãƒ–ã«è¿½åŠ 
             lightingStatusTab.Controls.Clear();
             lightingStatusTab.Controls.Add(mainPanel);
         }
@@ -302,7 +302,7 @@ namespace RoomKeypadManager
 
         private void InitializeRoomKeypadManagerTab(TabPage roomKeypadTab)
         {
-            // SplitContainer‚Å‰æ–Ê‚ğ¶‰E‚É•ªŠ„
+            // SplitContainerã§ç”»é¢ã‚’å·¦å³ã«åˆ†å‰²
             SplitContainer mainSplitContainer = new SplitContainer
             {
                 Dock = DockStyle.Fill,
@@ -311,21 +311,21 @@ namespace RoomKeypadManager
                 FixedPanel = FixedPanel.None
             };
 
-            // ¶‘¤ƒGƒŠƒA: 4•ªŠ„
+            // å·¦å´ã‚¨ãƒªã‚¢: 4åˆ†å‰²
             TableLayoutPanel leftLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 5, // CSV‘I‘ğƒGƒŠƒA‚ğ’Ç‰Á‚·‚é‚½‚ß4¨5‚É•ÏX
+                RowCount = 5, // CSVé¸æŠã‚¨ãƒªã‚¢ã‚’è¿½åŠ ã™ã‚‹ãŸã‚4â†’5ã«å¤‰æ›´
                 Padding = new Padding(10)
             };
-            leftLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // CSV‘I‘ğƒGƒŠƒA
-            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40)); // CSVî•ñ
-            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));  // ƒfƒoƒbƒOì¬ƒ{ƒ^ƒ“
-            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));  // TelnetÚ‘±—p
-            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 50)); // ƒL[ƒpƒbƒh•\¦
+            leftLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // CSVé¸æŠã‚¨ãƒªã‚¢
+            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40)); // CSVæƒ…å ±
+            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));  // ãƒ‡ãƒãƒƒã‚°ä½œæˆãƒœã‚¿ãƒ³
+            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));  // Telnetæ¥ç¶šç”¨
+            leftLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 50)); // ã‚­ãƒ¼ãƒ‘ãƒƒãƒ‰è¡¨ç¤º
 
-            // CSV‘I‘ğƒGƒŠƒA
+            // CSVé¸æŠã‚¨ãƒªã‚¢
             TableLayoutPanel csvSelectionLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -335,58 +335,58 @@ namespace RoomKeypadManager
                 AutoSize = true
             };
 
-            csvSelectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 80)); // ƒAƒhƒŒƒX•\¦—pTextBox (80%•)
-            csvSelectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // QÆƒ{ƒ^ƒ“ (©“®•)
+            csvSelectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 80)); // ã‚¢ãƒ‰ãƒ¬ã‚¹è¡¨ç¤ºç”¨TextBox (80%å¹…)
+            csvSelectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // å‚ç…§ãƒœã‚¿ãƒ³ (è‡ªå‹•å¹…)
 
-            // CSVŠİƒAƒhƒŒƒX•\¦—pTextBox
+            // CSVæ‰€åœ¨ã‚¢ãƒ‰ãƒ¬ã‚¹è¡¨ç¤ºç”¨TextBox
             TextBox csvPathTextBox = new TextBox
             {
                 Dock = DockStyle.Fill,
                 ReadOnly = true,
-                PlaceholderText = "CSVƒtƒ@ƒCƒ‹‚ÌƒpƒX‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢",
+                PlaceholderText = "CSVãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ‘ã‚¹ã‚’é¸æŠã—ã¦ãã ã•ã„",
                 Margin = new Padding(5)
             };
 
-            // CSVQÆƒ{ƒ^ƒ“
+            // CSVå‚ç…§ãƒœã‚¿ãƒ³
             Button browseCsvButton = new Button
             {
-                Text = "QÆ",
-                AutoSize = true,          // ƒTƒCƒY‚ğƒRƒ“ƒeƒ“ƒc‚É‡‚í‚¹‚é
-                AutoSizeMode = AutoSizeMode.GrowAndShrink, // ‚³‚ç‚É¬‚³‚­’²®‰Â”\
-                Margin = new Padding(5),  // ƒ{ƒ^ƒ“üˆÍ‚ÌƒXƒy[ƒX
-                Height = 25               // ƒ{ƒ^ƒ“‚Ì‚‚³‚ğ1s•ª‚É’²®
+                Text = "å‚ç…§",
+                AutoSize = true,          // ã‚µã‚¤ã‚ºã‚’ã‚³ãƒ³ãƒ†ãƒ³ãƒ„ã«åˆã‚ã›ã‚‹
+                AutoSizeMode = AutoSizeMode.GrowAndShrink, // ã•ã‚‰ã«å°ã•ãèª¿æ•´å¯èƒ½
+                Margin = new Padding(5),  // ãƒœã‚¿ãƒ³å‘¨å›²ã®ã‚¹ãƒšãƒ¼ã‚¹
+                Height = 25               // ãƒœã‚¿ãƒ³ã®é«˜ã•ã‚’1è¡Œåˆ†ã«èª¿æ•´
             };
 
-            // ƒ{ƒ^ƒ“‚ÌƒNƒŠƒbƒNƒCƒxƒ“ƒg‚ÅCSVƒtƒ@ƒCƒ‹‘I‘ğƒ_ƒCƒAƒƒO‚ğ•\¦
+            // ãƒœã‚¿ãƒ³ã®ã‚¯ãƒªãƒƒã‚¯ã‚¤ãƒ™ãƒ³ãƒˆã§CSVãƒ•ã‚¡ã‚¤ãƒ«é¸æŠãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã‚’è¡¨ç¤º
             browseCsvButton.Click += (sender, e) =>
             {
                 using (OpenFileDialog openFileDialog = new OpenFileDialog
                 {
                     Filter = "CSV files (*.csv)|*.csv",
-                    Title = "CSVƒtƒ@ƒCƒ‹‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢"
+                    Title = "CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠã—ã¦ãã ã•ã„"
                 })
                 {
                     if (openFileDialog.ShowDialog() == DialogResult.OK)
                     {
                         string selectedFilePath = openFileDialog.FileName;
-                        csvPathTextBox.Text = selectedFilePath; // ‘I‘ğ‚µ‚½ƒpƒX‚ğTextBox‚É•\¦
+                        csvPathTextBox.Text = selectedFilePath; // é¸æŠã—ãŸãƒ‘ã‚¹ã‚’TextBoxã«è¡¨ç¤º
 
-                        // CSVƒf[ƒ^‚ğÄ“Ç‚İ‚İ‚µ‚ÄUI‚ğXV
+                        // CSVãƒ‡ãƒ¼ã‚¿ã‚’å†èª­ã¿è¾¼ã¿ã—ã¦UIã‚’æ›´æ–°
                         (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(selectedFilePath);
                         roomKeySelector.Items.Clear();
-                        InitializeUI(); // Ä“xUI‚ğ‰Šú‰»
-                        MessageBox.Show("CSVƒtƒ@ƒCƒ‹‚ª³í‚É“Ç‚İ‚Ü‚ê‚Ü‚µ‚½B", "¬Œ÷", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        InitializeUI(); // å†åº¦UIã‚’åˆæœŸåŒ–
+                        MessageBox.Show("CSVãƒ•ã‚¡ã‚¤ãƒ«ãŒæ­£å¸¸ã«èª­ã¿è¾¼ã¾ã‚Œã¾ã—ãŸã€‚", "æˆåŠŸ", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             };
 
-            // CSV‘I‘ğƒGƒŠƒA‚ÉƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ’Ç‰Á
+            // CSVé¸æŠã‚¨ãƒªã‚¢ã«ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’è¿½åŠ 
             csvSelectionLayout.Controls.Add(csvPathTextBox, 0, 0);
             csvSelectionLayout.Controls.Add(browseCsvButton, 1, 0);
             leftLayout.Controls.Add(csvSelectionLayout, 0, 0);
 
 
-            // CSVî•ñƒGƒŠƒA
+            // CSVæƒ…å ±ã‚¨ãƒªã‚¢
             TableLayoutPanel csvInfoLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -394,13 +394,13 @@ namespace RoomKeypadManager
                 RowCount = 3,
                 Padding = new Padding(10)
             };
-            csvInfoLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // •”‰®‘I‘ğƒ‰ƒxƒ‹
+            csvInfoLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // éƒ¨å±‹é¸æŠãƒ©ãƒ™ãƒ«
             csvInfoLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // ComboBox
             csvInfoLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // DataGridView
 
             Label roomKeyLabel = new Label
             {
-                Text = "•”‰®‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢:",
+                Text = "éƒ¨å±‹ã‚’é¸æŠã—ã¦ãã ã•ã„:",
                 Dock = DockStyle.Top,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Margin = new Padding(0, 0, 0, 5)
@@ -425,25 +425,25 @@ namespace RoomKeypadManager
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect
             };
-            deviceTable.Columns.Add("ColumnDeviceName", "ƒfƒoƒCƒX–¼");
-            deviceTable.Columns.Add("ColumnModel", "ƒ‚ƒfƒ‹");
+            deviceTable.Columns.Add("ColumnDeviceName", "ãƒ‡ãƒã‚¤ã‚¹å");
+            deviceTable.Columns.Add("ColumnModel", "ãƒ¢ãƒ‡ãƒ«");
             deviceTable.Columns.Add("ColumnID", "ID");
-            deviceTable.Columns.Add("ColumnButtons", "ƒ{ƒ^ƒ“î•ñ");
+            deviceTable.Columns.Add("ColumnButtons", "ãƒœã‚¿ãƒ³æƒ…å ±");
             csvInfoLayout.Controls.Add(deviceTable, 0, 2);
 
             leftLayout.Controls.Add(csvInfoLayout, 1, 0);
 
-            // ƒfƒoƒbƒOŠÂ‹«ì¬ƒ{ƒ^ƒ“
+            // ãƒ‡ãƒãƒƒã‚°ç’°å¢ƒä½œæˆãƒœã‚¿ãƒ³
             Button createDebugEnvironmentButton = new Button
             {
-                Text = "ƒfƒoƒbƒOŠÂ‹«ì¬",
+                Text = "ãƒ‡ãƒãƒƒã‚°ç’°å¢ƒä½œæˆ",
                 Dock = DockStyle.Fill,
                 Height = 40
             };
             createDebugEnvironmentButton.Click += CreateDebugEnvironmentButton_Click;
             leftLayout.Controls.Add(createDebugEnvironmentButton, 0, 1);
 
-            // TelnetÚ‘±—pƒGƒŠƒA
+            // Telnetæ¥ç¶šç”¨ã‚¨ãƒªã‚¢
             TableLayoutPanel telnetLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -451,36 +451,36 @@ namespace RoomKeypadManager
                 RowCount = 1,
                 Padding = new Padding(10)
             };
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // IP“ü—ÍƒtƒB[ƒ‹ƒh
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // Ú‘±ƒ{ƒ^ƒ“
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // ƒ‰ƒWƒIƒ{ƒ^ƒ“ƒGƒŠƒA
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));   // ƒXƒe[ƒ^ƒXƒ‰ƒxƒ‹
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // GETTIMEƒ{ƒ^ƒ“
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET DAYƒ{ƒ^ƒ“
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET NIGHTƒ{ƒ^ƒ“
-            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // ó‘ÔŠm”Fƒ{ƒ^ƒ“
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // IPå…¥åŠ›ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // æ¥ç¶šãƒœã‚¿ãƒ³
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // ãƒ©ã‚¸ã‚ªãƒœã‚¿ãƒ³ã‚¨ãƒªã‚¢
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));   // ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ãƒ©ãƒ™ãƒ«
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // GETTIMEãƒœã‚¿ãƒ³
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET DAYãƒœã‚¿ãƒ³
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // SET NIGHTãƒœã‚¿ãƒ³
+            telnetLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // çŠ¶æ…‹ç¢ºèªãƒœã‚¿ãƒ³
 
 
-            // IP“ü—ÍƒtƒB[ƒ‹ƒh
+            // IPå…¥åŠ›ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰
             TextBox ipAddressTextBox = new TextBox
             {
                 Dock = DockStyle.Fill,
-                PlaceholderText = "IPƒAƒhƒŒƒX‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢",
+                PlaceholderText = "IPã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’å…¥åŠ›ã—ã¦ãã ã•ã„",
                 Margin = new Padding(5)
             };
             telnetLayout.Controls.Add(ipAddressTextBox, 0, 0);
 
-            // Ú‘±ƒ{ƒ^ƒ“
+            // æ¥ç¶šãƒœã‚¿ãƒ³
             Button connectTelnetButton = new Button
             {
-                Text = "TelnetÚ‘±",
+                Text = "Telnetæ¥ç¶š",
                 Dock = DockStyle.Fill,
                 Margin = new Padding(5),
                 Height = 30
             };
             telnetLayout.Controls.Add(connectTelnetButton, 1, 0);
 
-            // GETTIMEƒ{ƒ^ƒ“
+            // GETTIMEãƒœã‚¿ãƒ³
             Button getTimeButton = new Button
             {
                 Text = "GETTIME",
@@ -490,7 +490,7 @@ namespace RoomKeypadManager
             };
             telnetLayout.Controls.Add(getTimeButton, 4, 0);
 
-            // SET DAYƒ{ƒ^ƒ“
+            // SET DAYãƒœã‚¿ãƒ³
             Button setDayButton = new Button
             {
                 Text = "SET DAY",
@@ -500,7 +500,7 @@ namespace RoomKeypadManager
             };
             telnetLayout.Controls.Add(setDayButton, 5, 0);
 
-            // SET NIGHTƒ{ƒ^ƒ“
+            // SET NIGHTãƒœã‚¿ãƒ³
             Button setNightButton = new Button
             {
                 Text = "SET NIGHT",
@@ -510,10 +510,10 @@ namespace RoomKeypadManager
             };
             telnetLayout.Controls.Add(setNightButton, 6, 0);
 
-            // Ú‘±ƒXƒe[ƒ^ƒXƒ‰ƒxƒ‹
+            // æ¥ç¶šã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ãƒ©ãƒ™ãƒ«
             Label connectionStatusLabel = new Label
             {
-                Text = "”ñÚ‘±’†",
+                Text = "éæ¥ç¶šä¸­",
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Fill,
                 AutoSize = true,
@@ -522,17 +522,17 @@ namespace RoomKeypadManager
             };
             telnetLayout.Controls.Add(connectionStatusLabel, 3, 0);
 
-            // ó‘ÔŠm”Fƒ{ƒ^ƒ“
+            // çŠ¶æ…‹ç¢ºèªãƒœã‚¿ãƒ³
             Button checkStateButton = new Button
             {
-                Text = "ó‘ÔŠm”F",
+                Text = "çŠ¶æ…‹ç¢ºèª",
                 Dock = DockStyle.Fill,
                 Margin = new Padding(5),
                 Height = 30
             };
             telnetLayout.Controls.Add(checkStateButton, 7, 0);
 
-            // ƒ‰ƒWƒIƒ{ƒ^ƒ“ƒGƒŠƒA
+            // ãƒ©ã‚¸ã‚ªãƒœã‚¿ãƒ³ã‚¨ãƒªã‚¢
             FlowLayoutPanel radioPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -544,7 +544,7 @@ namespace RoomKeypadManager
             RadioButton gcuRadioButton = new RadioButton
             {
                 Text = "GCU",
-                Checked = true, // ƒfƒtƒHƒ‹ƒg‚Å‘I‘ğ
+                Checked = true, // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§é¸æŠ
                 AutoSize = true,
                 Margin = new Padding(5)
             };
@@ -556,31 +556,31 @@ namespace RoomKeypadManager
                 Margin = new Padding(5)
             };
 
-            // ƒ‰ƒWƒIƒ{ƒ^ƒ“‚ğ’Ç‰Á
+            // ãƒ©ã‚¸ã‚ªãƒœã‚¿ãƒ³ã‚’è¿½åŠ 
             radioPanel.Controls.Add(gcuRadioButton);
             radioPanel.Controls.Add(nwkRadioButton);
             telnetLayout.Controls.Add(radioPanel, 2, 0);
 
-            // ƒ{ƒ^ƒ“‚ÌƒCƒxƒ“ƒgƒnƒ“ƒhƒ‰“à‚Å‘I‘ğ“à—e‚ğg—p‰Â”\‚É‚·‚é
+            // ãƒœã‚¿ãƒ³ã®ã‚¤ãƒ™ãƒ³ãƒˆãƒãƒ³ãƒ‰ãƒ©å†…ã§é¸æŠå†…å®¹ã‚’ä½¿ç”¨å¯èƒ½ã«ã™ã‚‹
             connectTelnetButton.Click += (sender, e) =>
             {
                 if (gcuRadioButton.Checked)
                 {
-                    AddLogEntry("‘I‘ğ‚³‚ê‚½Ú‘±ƒ^ƒCƒv: GCU");
+                    AddLogEntry("é¸æŠã•ã‚ŒãŸæ¥ç¶šã‚¿ã‚¤ãƒ—: GCU");
                 }
                 else if (nwkRadioButton.Checked)
                 {
-                    AddLogEntry("‘I‘ğ‚³‚ê‚½Ú‘±ƒ^ƒCƒv: NWK");
+                    AddLogEntry("é¸æŠã•ã‚ŒãŸæ¥ç¶šã‚¿ã‚¤ãƒ—: NWK");
                 }
                 else
                 {
-                    MessageBox.Show("Ú‘±ƒ^ƒCƒv‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("æ¥ç¶šã‚¿ã‚¤ãƒ—ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
 
             checkStateButton.Click += (sender, e) =>
             {
-                LogKeypadStates(); // ƒL[ƒpƒbƒh‚Ìó‘Ô‚ğƒƒO‚Éo—Í
+                LogKeypadStates(); // ã‚­ãƒ¼ãƒ‘ãƒƒãƒ‰ã®çŠ¶æ…‹ã‚’ãƒ­ã‚°ã«å‡ºåŠ›
             };
 
             getTimeButton.Click += async (sender, e) =>
@@ -591,17 +591,17 @@ namespace RoomKeypadManager
                     {
                         string getTimeCommand = "GETTIME";
                         await telnetClientHelper.SendCommandAsync(getTimeCommand);
-                        AddLogEntry($"‘—M: {getTimeCommand}");
-                        //AddLogEntry($"‰“š: {response}");
+                        AddLogEntry($"é€ä¿¡: {getTimeCommand}");
+                        //AddLogEntry($"å¿œç­”: {response}");
                     }
                     catch (Exception ex)
                     {
-                        AddLogEntry($"GETTIME ƒRƒ}ƒ“ƒh‚ÌÀs’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: {ex.Message}");
+                        AddLogEntry($"GETTIME ã‚³ãƒãƒ³ãƒ‰ã®å®Ÿè¡Œä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: {ex.Message}");
                     }
                 }
                 else
                 {
-                    MessageBox.Show("TelnetÚ‘±’†‚Å‚Í‚ ‚è‚Ü‚¹‚ñB", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Telnetæ¥ç¶šä¸­ã§ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
 
@@ -613,17 +613,17 @@ namespace RoomKeypadManager
                     {
                         string setDayCommand = "SETTIME,9";
                         await telnetClientHelper.SendCommandAsync(setDayCommand);
-                        AddLogEntry($"‘—M: {setDayCommand}");
-                        //AddLogEntry($"‰“š: {response}");
+                        AddLogEntry($"é€ä¿¡: {setDayCommand}");
+                        //AddLogEntry($"å¿œç­”: {response}");
                     }
                     catch (Exception ex)
                     {
-                        AddLogEntry($"SET DAY ƒRƒ}ƒ“ƒh‚ÌÀs’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: {ex.Message}");
+                        AddLogEntry($"SET DAY ã‚³ãƒãƒ³ãƒ‰ã®å®Ÿè¡Œä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: {ex.Message}");
                     }
                 }
                 else
                 {
-                    MessageBox.Show("TelnetÚ‘±’†‚Å‚Í‚ ‚è‚Ü‚¹‚ñB", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Telnetæ¥ç¶šä¸­ã§ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
 
@@ -635,17 +635,17 @@ namespace RoomKeypadManager
                     {
                         string setNightCommand = "SETTIME,21";
                         await telnetClientHelper.SendCommandAsync(setNightCommand);
-                        AddLogEntry($"‘—M: {setNightCommand}");
-                        //AddLogEntry($"‰“š: {response}");
+                        AddLogEntry($"é€ä¿¡: {setNightCommand}");
+                        //AddLogEntry($"å¿œç­”: {response}");
                     }
                     catch (Exception ex)
                     {
-                        AddLogEntry($"SET NIGHT ƒRƒ}ƒ“ƒh‚ÌÀs’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: {ex.Message}");
+                        AddLogEntry($"SET NIGHT ã‚³ãƒãƒ³ãƒ‰ã®å®Ÿè¡Œä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: {ex.Message}");
                     }
                 }
                 else
                 {
-                    MessageBox.Show("TelnetÚ‘±’†‚Å‚Í‚ ‚è‚Ü‚¹‚ñB", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Telnetæ¥ç¶šä¸­ã§ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
 
@@ -653,20 +653,20 @@ namespace RoomKeypadManager
             {
                 try
                 {
-                    // Ú‘±‰ğœˆ—
+                    // æ¥ç¶šè§£é™¤å‡¦ç†
                     if (isConnected)
                     {
                         telnetClientHelper?.StopListening();
                         telnetClientHelper?.Close();
                         isConnected = false;
-                        connectionStatusLabel.Text = "”ñÚ‘±’†";
+                        connectionStatusLabel.Text = "éæ¥ç¶šä¸­";
                         connectionStatusLabel.ForeColor = Color.Red;
-                        connectTelnetButton.Text = "TelnetÚ‘±";
-                        AddLogEntry("TelnetÚ‘±‚ğ‰ğœ‚µ‚Ü‚µ‚½B");
+                        connectTelnetButton.Text = "Telnetæ¥ç¶š";
+                        AddLogEntry("Telnetæ¥ç¶šã‚’è§£é™¤ã—ã¾ã—ãŸã€‚");
                         return;
                     }
 
-                    // Ú‘±î•ñæ“¾
+                    // æ¥ç¶šæƒ…å ±å–å¾—
                     string ipAddress = ipAddressTextBox.Text.Trim();
                     string username = "x1s";
                     string password = "x1s";
@@ -674,18 +674,18 @@ namespace RoomKeypadManager
 
                     if (string.IsNullOrWhiteSpace(ipAddress))
                     {
-                        MessageBox.Show("IPƒAƒhƒŒƒX‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("IPã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’å…¥åŠ›ã—ã¦ãã ã•ã„ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
 
-                    // Ú‘±ƒ^ƒCƒv‚Ì”»’è
-                    bool nwk_check = nwkRadioButton.Checked; // NWK‚ª‘I‘ğ‚³‚ê‚Ä‚¢‚éê‡‚ÍtrueAMyRoom‚Ìê‡‚Ífalse
+                    // æ¥ç¶šã‚¿ã‚¤ãƒ—ã®åˆ¤å®š
+                    bool nwk_check = nwkRadioButton.Checked; // NWKãŒé¸æŠã•ã‚Œã¦ã„ã‚‹å ´åˆã¯trueã€MyRoomã®å ´åˆã¯false
 
-                    // Ú‘±ƒXƒe[ƒ^ƒX‚ğXV
-                    connectionStatusLabel.Text = "Ú‘±’†...";
+                    // æ¥ç¶šã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ã‚’æ›´æ–°
+                    connectionStatusLabel.Text = "æ¥ç¶šä¸­...";
                     connectionStatusLabel.ForeColor = Color.Blue;
 
-                    // TelnetÚ‘±‰Šú‰»
+                    // Telnetæ¥ç¶šåˆæœŸåŒ–
                     //telnetClientHelper = new TelnetClientHelper(structuredData);
                     telnetClientHelper = new TelnetClientHelper(this, structuredData, additionalData);
 
@@ -694,45 +694,45 @@ namespace RoomKeypadManager
                     NetworkStream stream = tcpClient.GetStream();
                     telnetClientHelper.InitializeStream(stream);
 
-                    // ƒƒOƒCƒ“ˆ—
+                    // ãƒ­ã‚°ã‚¤ãƒ³å‡¦ç†
                     bool loginSuccess = await telnetClientHelper.LoginAsync(username, password, nwk, nwk_check);
                     if (loginSuccess)
                     {
                         isConnected = true;
-                        connectionStatusLabel.Text = "Ú‘±’†";
+                        connectionStatusLabel.Text = "æ¥ç¶šä¸­";
                         connectionStatusLabel.ForeColor = Color.Green;
-                        connectTelnetButton.Text = "TelnetÚ‘±‰ğœ";
-                        AddLogEntry($"TelnetÚ‘±‚¨‚æ‚ÑƒƒOƒCƒ“‚É¬Œ÷‚µ‚Ü‚µ‚½: {ipAddress}");
+                        connectTelnetButton.Text = "Telnetæ¥ç¶šè§£é™¤";
+                        AddLogEntry($"Telnetæ¥ç¶šãŠã‚ˆã³ãƒ­ã‚°ã‚¤ãƒ³ã«æˆåŠŸã—ã¾ã—ãŸ: {ipAddress}");
 
-                        // ƒŠƒXƒjƒ“ƒOŠJn
+                        // ãƒªã‚¹ãƒ‹ãƒ³ã‚°é–‹å§‹
                         telnetClientHelper.StartListening();
 
-                        // Šm”FƒRƒ}ƒ“ƒh‚ğ‘—M
+                        // ç¢ºèªã‚³ãƒãƒ³ãƒ‰ã‚’é€ä¿¡
                         string getTimeCommand = "GETTIME";
                         await telnetClientHelper.SendCommandAsync(getTimeCommand);
-                        AddLogEntry($"GETTIMEƒRƒ}ƒ“ƒh‚ğ‘—M‚µ‚Ü‚µ‚½B");
+                        AddLogEntry($"GETTIMEã‚³ãƒãƒ³ãƒ‰ã‚’é€ä¿¡ã—ã¾ã—ãŸã€‚");
 
-                        //await telnetClientHelper.SendBacklightBrightnessCommandsForKeypads(structuredData, AddLogEntry);
-                        AddLogEntry("ƒL[ƒpƒbƒh‚ÌƒoƒbƒNƒ‰ƒCƒgŠm”FƒRƒ}ƒ“ƒh‚ğ‘—M‚µ‚Ü‚µ‚½B");
+                        await telnetClientHelper.SendBacklightBrightnessCommandsForKeypads(structuredData, AddLogEntry);
+                        AddLogEntry("ã‚­ãƒ¼ãƒ‘ãƒƒãƒ‰ã®ãƒãƒƒã‚¯ãƒ©ã‚¤ãƒˆç¢ºèªã‚³ãƒãƒ³ãƒ‰ã‚’é€ä¿¡ã—ã¾ã—ãŸã€‚");
                     }
                     else
                     {
-                        throw new Exception("ƒƒOƒCƒ“‚É¸”s‚µ‚Ü‚µ‚½B");
+                        throw new Exception("ãƒ­ã‚°ã‚¤ãƒ³ã«å¤±æ•—ã—ã¾ã—ãŸã€‚");
                     }
                 }
                 catch (Exception ex)
                 {
-                    // ƒGƒ‰[ˆ—
-                    connectionStatusLabel.Text = "”ñÚ‘±’†";
+                    // ã‚¨ãƒ©ãƒ¼å‡¦ç†
+                    connectionStatusLabel.Text = "éæ¥ç¶šä¸­";
                     connectionStatusLabel.ForeColor = Color.Red;
-                    AddLogEntry($"ƒGƒ‰[: {ex.Message}");
+                    AddLogEntry($"ã‚¨ãƒ©ãƒ¼: {ex.Message}");
                 }
             };
 
 
             leftLayout.Controls.Add(telnetLayout, 0, 2);
 
-            // ƒL[ƒpƒbƒh•\¦ƒGƒŠƒA
+            // ã‚­ãƒ¼ãƒ‘ãƒƒãƒ‰è¡¨ç¤ºã‚¨ãƒªã‚¢
             debugPanel = new Panel
             {
                 Dock = DockStyle.Fill,
@@ -743,7 +743,7 @@ namespace RoomKeypadManager
 
             mainSplitContainer.Panel1.Controls.Add(leftLayout);
 
-            // ‰E‘¤ƒGƒŠƒA: ƒƒOo—Í
+            // å³å´ã‚¨ãƒªã‚¢: ãƒ­ã‚°å‡ºåŠ›
             SplitContainer logSplitContainer = new SplitContainer
             {
                 Dock = DockStyle.Fill,
@@ -752,10 +752,10 @@ namespace RoomKeypadManager
                 SplitterDistance = (int)(this.Height * 0.8)
             };
 
-            // ã•”ƒƒOo—ÍƒGƒŠƒA
+            // ä¸Šéƒ¨ãƒ­ã‚°å‡ºåŠ›ã‚¨ãƒªã‚¢
             GroupBox logGroupBox = new GroupBox
             {
-                Text = "ƒƒOo—Í",
+                Text = "ãƒ­ã‚°å‡ºåŠ›",
                 Dock = DockStyle.Fill,
                 Padding = new Padding(10)
             };
@@ -766,10 +766,39 @@ namespace RoomKeypadManager
                 ScrollAlwaysVisible = true
             };
 
-            // ƒƒOƒNƒŠƒAƒ{ƒ^ƒ“
+            // ãƒ­ã‚°ã‚³ãƒ”ãƒ¼ç”¨ã®ãƒœã‚¿ãƒ³ã‚’ä½œæˆ
+            Button copyLogButton = new Button
+            {
+                Text = "ãƒ­ã‚°ã‚’ã‚³ãƒ”ãƒ¼",
+                Dock = DockStyle.Top,
+                Height = 30
+            };
+            copyLogButton.Click += (sender, e) =>
+            {
+                if (logListBox.Items.Count > 0) // ListBoxã«ã‚¢ã‚¤ãƒ†ãƒ ãŒã‚ã‚‹ã‹ç¢ºèª
+                {
+                    // ListBoxã®ã™ã¹ã¦ã®ã‚¢ã‚¤ãƒ†ãƒ ã‚’æ”¹è¡ŒåŒºåˆ‡ã‚Šã§çµåˆ
+                    var logs = string.Join(Environment.NewLine, logListBox.Items.Cast<string>());
+
+                    // ã‚¯ãƒªãƒƒãƒ—ãƒœãƒ¼ãƒ‰ã«ã‚³ãƒ”ãƒ¼
+                    Clipboard.SetText(logs);
+                    MessageBox.Show("ãƒ­ã‚°ã‚’ã‚¯ãƒªãƒƒãƒ—ãƒœãƒ¼ãƒ‰ã«ã‚³ãƒ”ãƒ¼ã—ã¾ã—ãŸã€‚", "æˆåŠŸ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("ãƒ­ã‚°ãŒç©ºã§ã™ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
+
+            // ãƒ­ã‚°ã‚¨ãƒªã‚¢ã«ãƒœã‚¿ãƒ³ã‚’è¿½åŠ 
+            logGroupBox.Controls.Add(copyLogButton);
+
+
+            // ãƒ­ã‚°ã‚¯ãƒªã‚¢ãƒœã‚¿ãƒ³
             Button clearLogButton = new Button
             {
-                Text = "ƒƒOƒNƒŠƒA",
+                Text = "ãƒ­ã‚°ã‚¯ãƒªã‚¢",
                 Dock = DockStyle.Top,
                 Height = 30
             };
@@ -783,10 +812,10 @@ namespace RoomKeypadManager
 
             logSplitContainer.Panel1.Controls.Add(logGroupBox);
 
-            // ‰º•”ƒRƒ}ƒ“ƒh“ü—ÍƒGƒŠƒA
+            // ä¸‹éƒ¨ã‚³ãƒãƒ³ãƒ‰å…¥åŠ›ã‚¨ãƒªã‚¢
             GroupBox commandGroupBox = new GroupBox
             {
-                Text = "ƒRƒ}ƒ“ƒh“ü—Í",
+                Text = "ã‚³ãƒãƒ³ãƒ‰å…¥åŠ›",
                 Dock = DockStyle.Fill,
                 Padding = new Padding(10)
             };
@@ -804,12 +833,12 @@ namespace RoomKeypadManager
             TextBox commandInputBox = new TextBox
             {
                 Dock = DockStyle.Fill,
-                PlaceholderText = "ƒRƒ}ƒ“ƒh‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢"
+                PlaceholderText = "ã‚³ãƒãƒ³ãƒ‰ã‚’å…¥åŠ›ã—ã¦ãã ã•ã„"
             };
 
             Button sendCommandButton = new Button
             {
-                Text = "‘—M",
+                Text = "é€ä¿¡",
                 Dock = DockStyle.Fill,
                 Height = 30
             };
@@ -818,26 +847,26 @@ namespace RoomKeypadManager
                 string command = commandInputBox.Text.Trim();
                 if (string.IsNullOrWhiteSpace(command))
                 {
-                    MessageBox.Show("ƒRƒ}ƒ“ƒh‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("ã‚³ãƒãƒ³ãƒ‰ã‚’å…¥åŠ›ã—ã¦ãã ã•ã„ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
                 if (!isConnected || telnetClientHelper == null)
                 {
-                    MessageBox.Show("TelnetÚ‘±‚ªŠm—§‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Telnetæ¥ç¶šãŒç¢ºç«‹ã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
                 try
                 {
-                    AddLogEntry($"‘—M: {command}");
+                    AddLogEntry($"é€ä¿¡: {command}");
                     string response = await telnetClientHelper.SendCommandAsync(command);
-                    AddLogEntry($"‰“š: {response}");
+                    AddLogEntry($"å¿œç­”: {response}");
                     commandInputBox.Clear();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"ƒRƒ}ƒ“ƒh‘—M’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: {ex.Message}", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"ã‚³ãƒãƒ³ãƒ‰é€ä¿¡ä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: {ex.Message}", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
 
@@ -857,7 +886,7 @@ namespace RoomKeypadManager
             using (var openFileDialog = new OpenFileDialog
             {
                 Filter = "CSV files (*.csv)|*.csv",
-                Title = "CSVƒtƒ@ƒCƒ‹‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢"
+                Title = "CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠã—ã¦ãã ã•ã„"
             })
             {
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
@@ -904,49 +933,64 @@ namespace RoomKeypadManager
         {
             if (roomKeySelector.SelectedItem == null)
             {
-                MessageBox.Show("•”‰®‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("éƒ¨å±‹ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             string selectedRoomKey = roomKeySelector.SelectedItem.ToString();
             if (!structuredData.ContainsKey(selectedRoomKey))
             {
-                MessageBox.Show("‘I‘ğ‚µ‚½•”‰®‚ÌƒfƒoƒCƒX‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", "ƒGƒ‰[", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("é¸æŠã—ãŸéƒ¨å±‹ã®ãƒ‡ãƒã‚¤ã‚¹ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", "ã‚¨ãƒ©ãƒ¼", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             debugPanel.Controls.Clear();
 
-            // FlowLayoutPanel‚Å‰¡•À‚Ñ‚ÉƒL[ƒpƒbƒh‚ğ•\¦
-            FlowLayoutPanel mainFlowPanel = new FlowLayoutPanel
+            // åˆ†å‰²ãƒ‘ãƒãƒ«ã®ä½œæˆ (å·¦60%ã€å³40%ã«åˆ†å‰²)
+            SplitContainer splitContainer = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                IsSplitterFixed = false // å›ºå®šã›ãšã€å‹•çš„èª¿æ•´ã‚’è¨±å¯
+            };
+
+            // debugPanel ã®ã‚µã‚¤ã‚ºãŒç¢ºå®šã—ãŸå¾Œã« SplitterDistance ã‚’è¨­å®š
+            splitContainer.SizeChanged += (sender, e) =>
+            {
+                splitContainer.SplitterDistance = (int)(splitContainer.Width * 0.6); // å·¦60%ã€å³40%
+            };
+
+            // ã‚­ãƒ¼ãƒ‘ãƒƒãƒ‰ã‚¨ãƒªã‚¢ (å·¦å´)
+            FlowLayoutPanel keypadArea = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.TopDown,
                 AutoScroll = true,
-                WrapContents = false
+                WrapContents = false,
+                BackColor = Color.White
             };
 
-            // ƒfƒoƒCƒX‚ğƒOƒ‹[ƒv‰»
+            // ãƒ‡ãƒã‚¤ã‚¹ã‚’ã‚°ãƒ«ãƒ¼ãƒ—åŒ–
             var groupedDevices = structuredData[selectedRoomKey]
-                .Where(device => device.Model.StartsWith("MWP-U") || device.Model.StartsWith("MWP-B")) // ƒL[ƒpƒbƒh‚Ì‚İƒtƒBƒ‹ƒ^ƒŠƒ“ƒO
-                .GroupBy(device => device.DeviceName.Split('(')[0]) // ƒfƒoƒCƒX–¼‚ÌŠî–{•”•ª‚ÅƒOƒ‹[ƒv‰»
+                .Where(device => device.Model.StartsWith("MWP-U") || device.Model.StartsWith("MWP-B") || device.Model.StartsWith("MWP-S"))
+                .GroupBy(device => device.DeviceName.Split('(')[0])
                 .ToDictionary(group => group.Key, group => group.ToList());
 
             foreach (var group in groupedDevices)
             {
-                // ƒOƒ‹[ƒv–¼‚ğ•\¦‚·‚é‚½‚ß‚Ìƒ‰ƒxƒ‹
+                // ã‚°ãƒ«ãƒ¼ãƒ—åãƒ©ãƒ™ãƒ«
                 Label groupLabel = new Label
                 {
-                    Text = group.Key, // ƒOƒ‹[ƒv‚ÌƒfƒoƒCƒX–¼
+                    Text = group.Key,
                     AutoSize = true,
                     Font = new Font(FontFamily.GenericSansSerif, 12, FontStyle.Bold),
                     Padding = new Padding(5),
                     Margin = new Padding(10, 20, 10, 5),
                     TextAlign = ContentAlignment.MiddleLeft
                 };
-                mainFlowPanel.Controls.Add(groupLabel);
+                keypadArea.Controls.Add(groupLabel);
 
-                // ƒOƒ‹[ƒv“à‚ÌƒL[ƒpƒbƒh‚ğ‰¡•À‚Ñ‚É”z’u
+                // ã‚­ãƒ¼ãƒ‘ãƒƒãƒ‰ã®ãƒ‘ãƒãƒ«
                 FlowLayoutPanel groupFlowPanel = new FlowLayoutPanel
                 {
                     FlowDirection = FlowDirection.LeftToRight,
@@ -958,17 +1002,16 @@ namespace RoomKeypadManager
 
                 foreach (var device in group.Value)
                 {
-                    // ƒL[ƒpƒbƒh‚ğˆÍ‚Ş˜g‚ğì¬
+                    // ã‚­ãƒ¼ãƒ‘ãƒƒãƒ‰ã®ã‚³ãƒ³ãƒ†ãƒŠ
                     Panel keypadContainer = new Panel
                     {
-                        BackColor = Color.LightGray, // ŠDF‚Ì”wŒi
-                        Padding = new Padding(10), // ã‰º¶‰E‚É‹Ï“™‚È—]”’
-                        Margin = new Padding(5),   // ŠeƒL[ƒpƒbƒhŠÔ‚ÌƒXƒy[ƒX
+                        BackColor = Color.LightGray,
+                        Padding = new Padding(10),
+                        Margin = new Padding(5),
                         AutoSize = true,
                         AutoSizeMode = AutoSizeMode.GrowAndShrink
                     };
 
-                    // ƒL[ƒpƒbƒh‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ğì¬
                     Keypad keypad = new Keypad(
                         device.DeviceName,
                         device.ID,
@@ -981,33 +1024,102 @@ namespace RoomKeypadManager
                         AddLogEntry,
                         (command) => telnetClientHelper.SendCommandAsync(command))
                     {
-                        Name = device.ID, // DeviceID ‚ğ Name ‚Éİ’è
+                        Name = device.ID,
                         Margin = new Padding(5)
                     };
 
-                    // ƒƒO‚É’Ç‰Áî•ñ‚ğ‹L˜^
-                    //AddLogEntry($"[DEBUG] Adding Keypad: {keypad.DeviceName}, ID: {keypad.DeviceID}, Name: {keypad.Name}");
-
-                    // ƒL[ƒpƒbƒh‚ğ˜g“à‚É’Ç‰Á
                     keypadContainer.Controls.Add(keypad);
                     groupFlowPanel.Controls.Add(keypadContainer);
                 }
 
-                mainFlowPanel.Controls.Add(groupFlowPanel);
+                keypadArea.Controls.Add(groupFlowPanel);
             }
 
-            // `debugPanel` ‚É’Ç‰Á
-            debugPanel.Controls.Add(mainFlowPanel);
-
-            // Šm”F—pƒƒO‚ğo—Í
-            AddLogEntry($"[DEBUG] Finished adding keypads to debugPanel. Total groups: {groupedDevices.Count}");
-            foreach (Control control in debugPanel.Controls)
+            // ãƒ‡ã‚¶ã‚¤ãƒ³ã‚¨ãƒªã‚¢ (å³å´)
+            FlowLayoutPanel designArea = new FlowLayoutPanel
             {
-                AddLogEntry($"[DEBUG] Control in debugPanel: {control.GetType().Name}");
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.TopDown,
+                AutoScroll = true,
+                WrapContents = true,
+                BackColor = Color.White, // èƒŒæ™¯ã‚’ç™½ã«å¤‰æ›´
+                Padding = new Padding(10)
+            };
+
+            // ãƒ‡ã‚¶ã‚¤ãƒ³ã‚¨ãƒªã‚¢ã«æç”»ã™ã‚‹ãƒ‡ã‚¶ã‚¤ãƒ³éƒ¨åˆ†
+            foreach (var device in structuredData[selectedRoomKey].Where(d => d.Model.Contains("MWP-T-OHW")))
+            {
+                Panel designContainer = new Panel
+                {
+                    BackColor = Color.White, // èƒŒæ™¯è‰²
+                    Size = new Size(250, 250), // å›ºå®šã‚µã‚¤ã‚º
+                    Margin = new Padding(10),
+                    BorderStyle = BorderStyle.FixedSingle // ãƒœãƒ¼ãƒ€ãƒ¼ã‚’ä»˜ã‘ã¦åˆ†ã‹ã‚Šã‚„ã™ã
+                };
+
+                // ãƒ‡ã‚¶ã‚¤ãƒ³ã®ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆ
+                TableLayoutPanel designLayout = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    RowCount = 3, // ãƒ‡ã‚£ã‚¹ãƒ—ãƒ¬ã‚¤ã¨ãƒœã‚¿ãƒ³éƒ¨åˆ†ã‚’å«ã‚€
+                    ColumnCount = 3,
+                    BackColor = Color.Black,
+                    Padding = new Padding(5),
+                    Margin = new Padding(0)
+                };
+
+                // åˆ—ã¨è¡Œã®ã‚¹ã‚¿ã‚¤ãƒ«ã‚’å‡ç­‰ã«è¨­å®š
+                for (int i = 0; i < 3; i++)
+                {
+                    designLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f)); // åˆ—å¹…ã‚’å‡ç­‰ã«
+                }
+                designLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 70)); // ä¸Šéƒ¨ãƒ‡ã‚£ã‚¹ãƒ—ãƒ¬ã‚¤
+                designLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 50)); // ãƒœã‚¿ãƒ³ã®1æ®µç›®
+                designLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 50)); // ãƒœã‚¿ãƒ³ã®2æ®µç›®
+
+                // ãƒ‡ã‚£ã‚¹ãƒ—ãƒ¬ã‚¤éƒ¨åˆ†
+                Panel displayArea = new Panel
+                {
+                    BackColor = Color.Gray,
+                    Dock = DockStyle.Fill // ãƒ•ã‚£ãƒ«å…¨ä½“ã«æ‹¡å¼µ
+                };
+                designLayout.Controls.Add(displayArea, 0, 0);
+                designLayout.SetColumnSpan(displayArea, 3);
+
+                // ãƒœã‚¿ãƒ³ã‚¨ãƒªã‚¢
+                string[] buttonTexts = { "Pow", "â„ƒ/â„‰", "â–²", "ğŸŒ€", "", "â–¼" }; // ãƒœã‚¿ãƒ³ã®ãƒ†ã‚­ã‚¹ãƒˆ
+                Font buttonFont = new Font(FontFamily.GenericSansSerif, 16, FontStyle.Bold); // ãƒœã‚¿ãƒ³ã®ãƒ•ã‚©ãƒ³ãƒˆ
+
+                for (int i = 0; i < 6; i++)
+                {
+                    Button button = new Button
+                    {
+                        BackColor = Color.Black,
+                        ForeColor = Color.White,
+                        Text = buttonTexts[i], // ãƒœã‚¿ãƒ³ã«ãƒãƒ¼ã‚¯ã‚’è¨­å®š
+                        Dock = DockStyle.Fill,
+                        Font = buttonFont,
+                        Margin = new Padding(2) // ãƒœã‚¿ãƒ³é–“ã®ä½™ç™½ã‚’èª¿æ•´
+                    };
+                    designLayout.Controls.Add(button, i % 3, 1 + (i / 3)); // ãƒœã‚¿ãƒ³ã‚’é©åˆ‡ã«é…ç½®
+                }
+
+                // ã‚³ãƒ³ãƒ†ãƒŠã«ãƒ‡ã‚¶ã‚¤ãƒ³ã‚’è¿½åŠ 
+                designContainer.Controls.Add(designLayout);
+                designArea.Controls.Add(designContainer);
             }
 
+
+            // SplitContainerã«ã‚¨ãƒªã‚¢ã‚’è¿½åŠ 
+            splitContainer.Panel1.Controls.Add(keypadArea);
+            splitContainer.Panel2.Controls.Add(designArea);
+
+            debugPanel.Controls.Add(splitContainer);
             debugPanel.Update();
         }
+
+
+
 
 
 
@@ -1021,14 +1133,14 @@ namespace RoomKeypadManager
         {
             if (structuredData != null)
             {
-                // ‘Î‰‚·‚éƒfƒoƒCƒX‚ğŒŸõ
+                // å¯¾å¿œã™ã‚‹ãƒ‡ãƒã‚¤ã‚¹ã‚’æ¤œç´¢
                 var device = structuredData.Values
                     .SelectMany(devices => devices)
                     .FirstOrDefault(d => d.ID == deviceID);
 
-                // ƒ{ƒ^ƒ“ó‘Ô‚ğæ“¾i‰¼‚ÌƒƒWƒbƒNBÀÛ‚É‚Íƒ{ƒ^ƒ“ó‘Ô‚ğ•Û‚·‚éƒf[ƒ^\‘¢‚ª•K—vj
+                // ãƒœã‚¿ãƒ³çŠ¶æ…‹ã‚’å–å¾—ï¼ˆä»®ã®ãƒ­ã‚¸ãƒƒã‚¯ã€‚å®Ÿéš›ã«ã¯ãƒœã‚¿ãƒ³çŠ¶æ…‹ã‚’ä¿æŒã™ã‚‹ãƒ‡ãƒ¼ã‚¿æ§‹é€ ãŒå¿…è¦ï¼‰
                 return device?.Buttons.Count > buttonIndex
-                    ? (bool?)true // ‰¼‚É‚·‚×‚Ä‚Ìƒ{ƒ^ƒ“‚ªƒAƒNƒeƒBƒu
+                    ? (bool?)true // ä»®ã«ã™ã¹ã¦ã®ãƒœã‚¿ãƒ³ãŒã‚¢ã‚¯ãƒ†ã‚£ãƒ–
                     : (bool?)false;
             }
             return null;
@@ -1074,20 +1186,20 @@ namespace RoomKeypadManager
         //        }
         //    }
 
-        //    AddLogEntry($"[ERROR] DeviceID: {deviceID} ‚É‘Î‰‚·‚é Keypad ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB");
+        //    AddLogEntry($"[ERROR] DeviceID: {deviceID} ã«å¯¾å¿œã™ã‚‹ Keypad ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚");
         //    return null;
         //}
 
 
 
 
-        // MainForm.cs ‚É‹LÚ‚·‚éŠÖ”
-        // 2ŒÂ–Ú‚Ìƒ^ƒu‚ğXV‚·‚éŠÖ”
+        // MainForm.cs ã«è¨˜è¼‰ã™ã‚‹é–¢æ•°
+        // 2å€‹ç›®ã®ã‚¿ãƒ–ã‚’æ›´æ–°ã™ã‚‹é–¢æ•°
         public void UpdateLightingStatusTabBrightness(string id, float brightness)
         {
             if (tabControl == null)
             {
-                Console.WriteLine("[ERROR] tabControl ‚ª null ‚Å‚·B");
+                Console.WriteLine("[ERROR] tabControl ãŒ null ã§ã™ã€‚");
                 return;
             }
 
@@ -1107,14 +1219,14 @@ namespace RoomKeypadManager
                                     {
                                         if (row.Cells["ColumnID"].Value == null)
                                         {
-                                            Console.WriteLine($"[DEBUG] ID —ñ‚Ì’l‚ª null ‚Å‚·Bs: {row.Index}");
+                                            Console.WriteLine($"[DEBUG] ID åˆ—ã®å€¤ãŒ null ã§ã™ã€‚è¡Œ: {row.Index}");
                                             continue;
                                         }
 
                                         if (row.Cells["ColumnID"].Value.ToString() == id)
                                         {
                                             row.Cells["ColumnValue"].Value = $"{brightness}%";
-                                            Console.WriteLine($"[INFO] ID: {id} ‚Ìs‚ğXV‚µ‚Ü‚µ‚½B");
+                                            Console.WriteLine($"[INFO] ID: {id} ã®è¡Œã‚’æ›´æ–°ã—ã¾ã—ãŸã€‚");
                                             return;
                                         }
                                     }
@@ -1125,7 +1237,7 @@ namespace RoomKeypadManager
                 }
             }
 
-            Console.WriteLine($"[DEBUG] ID: {id} ‚Éˆê’v‚·‚és‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B");
+            Console.WriteLine($"[DEBUG] ID: {id} ã«ä¸€è‡´ã™ã‚‹è¡ŒãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚");
         }
 
         private void MonitorDeviceChanges()
@@ -1134,7 +1246,7 @@ namespace RoomKeypadManager
             {
                 foreach (var device in roomDevices)
                 {
-                    // ƒ{ƒ^ƒ“‚Ìó‘Ô‚ª•Ï‰»‚µ‚½‚Æ‚«‚ÌƒCƒxƒ“ƒg‚ğƒTƒuƒXƒNƒ‰ƒCƒu
+                    // ãƒœã‚¿ãƒ³ã®çŠ¶æ…‹ãŒå¤‰åŒ–ã—ãŸã¨ãã®ã‚¤ãƒ™ãƒ³ãƒˆã‚’ã‚µãƒ–ã‚¹ã‚¯ãƒ©ã‚¤ãƒ–
                     device.ButtonStateChanged += (deviceID, buttonIndex) =>
                     {
                         //AddLogEntry($"[DEBUG] UpdateKeypadButton called with DeviceID: {deviceID}, ButtonIndex: {buttonIndex}");
@@ -1146,10 +1258,10 @@ namespace RoomKeypadManager
         }
 
         /// <summary>
-        /// w’è‚³‚ê‚½ƒfƒoƒCƒX‚Ìƒ{ƒ^ƒ“‚ğXV
+        /// æŒ‡å®šã•ã‚ŒãŸãƒ‡ãƒã‚¤ã‚¹ã®ãƒœã‚¿ãƒ³ã‚’æ›´æ–°
         /// </summary>
-        /// <param name="deviceID">ƒfƒoƒCƒXID</param>
-        /// <param name="buttonIndex">ƒ{ƒ^ƒ“”Ô†</param>
+        /// <param name="deviceID">ãƒ‡ãƒã‚¤ã‚¹ID</param>
+        /// <param name="buttonIndex">ãƒœã‚¿ãƒ³ç•ªå·</param>
         private void UpdateKeypadButton(string deviceID, int buttonIndex)
         {
             if (debugPanel.InvokeRequired)
@@ -1158,27 +1270,34 @@ namespace RoomKeypadManager
                 return;
             }
 
-            //AddLogEntry($"[DEBUG] Searching for Keypad with DeviceID: {deviceID}");
+            AddLogEntry($"[DEBUG] UpdateKeypadButton: Searching for DeviceID={deviceID}, ButtonIndex={buttonIndex}");
 
-            // Ä‹A“I‚É debugPanel “à‚Ì‚·‚×‚Ä‚ÌƒRƒ“ƒgƒ[ƒ‹‚ğ’Tõ
             bool found = false;
             foreach (Control control in debugPanel.Controls)
             {
                 found = SearchAndUpdateKeypad(control, deviceID, buttonIndex);
-                if (found) break;
+                if (found)
+                {
+                    AddLogEntry($"[INFO] Keypad updated successfully for DeviceID={deviceID}, ButtonIndex={buttonIndex}");
+                    return; // æˆåŠŸã—ãŸã‚‰çµ‚äº†
+                }
             }
 
             if (!found)
             {
-                AddLogEntry($"[WARN] ƒfƒoƒCƒX {deviceID} ‚É‘Î‰‚·‚éƒL[ƒpƒbƒh‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B");
+                AddLogEntry($"[WARN] No Keypad found for DeviceID={deviceID}, ButtonIndex={buttonIndex}");
             }
         }
+
+
+
+
 
         private bool SearchAndUpdateKeypad(Control control, string deviceID, int buttonIndex)
         {
             //AddLogEntry($"[DEBUG] Control: {control.Name}, Type: {control.GetType()}");
 
-            // Keypad ‚Ìê‡AğŒ‚ğƒ`ƒFƒbƒN
+            // Keypad ã®å ´åˆã€æ¡ä»¶ã‚’ãƒã‚§ãƒƒã‚¯
             if (control is Keypad keypad)
             {
                 //AddLogEntry($"[DEBUG] Found Keypad: {keypad.DeviceName}, ID: {keypad.DeviceID}");
@@ -1190,7 +1309,7 @@ namespace RoomKeypadManager
                 }
             }
 
-            // qƒRƒ“ƒgƒ[ƒ‹‚ª‘¶İ‚·‚éê‡AÄ‹A“I‚É’Tõ
+            // å­ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ«ãŒå­˜åœ¨ã™ã‚‹å ´åˆã€å†å¸°çš„ã«æ¢ç´¢
             foreach (Control child in control.Controls)
             {
                 if (SearchAndUpdateKeypad(child, deviceID, buttonIndex))

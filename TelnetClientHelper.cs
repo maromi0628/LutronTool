@@ -123,7 +123,7 @@ public class TelnetClientHelper
                 int messageEndIndex = bufferContent.IndexOf("\r\n");
                 if (messageEndIndex == -1)
                 {
-                    break;
+                    break; // メッセージの終端が見つからない場合は、処理を中断
                 }
 
                 string message = bufferContent.Substring(0, messageEndIndex).Trim();
@@ -134,11 +134,12 @@ public class TelnetClientHelper
                 if (!string.IsNullOrWhiteSpace(message))
                 {
                     logAction?.Invoke($"[レスポンス電文] {message}");
-                    HandleResponseMessage(message, logAction); // 電文処理
+                    HandleResponseMessage(message, logAction);
                 }
             }
         }
     }
+
 
     private void HandleResponseMessage(string message, Action<string> logAction)
     {
@@ -164,7 +165,7 @@ public class TelnetClientHelper
                         device.InactiveBrightness = brightness;
                     }
 
-                    logAction?.Invoke($"[DEBUG] ID: {id} の現在の照度を更新しました。");
+                    //logAction?.Invoke($"[DEBUG] ID: {id} の現在の照度を更新しました。");
                     return;
                 }
             }
@@ -211,12 +212,12 @@ public class TelnetClientHelper
             string id = matchOutputBrightness.Groups[1].Value;
             float brightness = float.Parse(matchOutputBrightness.Groups[2].Value);
 
-            logAction?.Invoke($"[DEBUG] 照度更新電文を受信: ID={id}, Brightness={brightness}%");
+            //logAction?.Invoke($"[DEBUG] 照度更新電文を受信: ID={id}, Brightness={brightness}%");
 
             // additionalData を参照して更新を試みる
             foreach (var section in additionalData.Keys)
             {
-                logAction?.Invoke($"[DEBUG] セクション: {section}");
+                //logAction?.Invoke($"[DEBUG] セクション: {section}");
 
                 // セクション内のデータを走査
                 foreach (var kvp in additionalData[section]) // kvp は KeyValuePair<string, string>
@@ -228,7 +229,7 @@ public class TelnetClientHelper
                         try
                         {
                             mainFormInstance?.UpdateLightingStatusTabBrightness(id, brightness);
-                            logAction?.Invoke($"[INFO] ID: {id} の照度を {brightness}% に更新しました。");
+                            //logAction?.Invoke($"[INFO] ID: {id} の照度を {brightness}% に更新しました。");
                         }
                         catch (Exception ex)
                         {
@@ -239,16 +240,45 @@ public class TelnetClientHelper
                     }
                 }
             }
-
-            //logAction?.Invoke($"[DEBUG] ID {id} に対応するデータが additionalData 内に見つかりません。");
         }
-        //else
-        //{
-        //    logAction?.Invoke($"[DEBUG] 照度更新の正規表現に一致しないメッセージ: {message}");
-        //}
 
+        // 新規電文処理（~SYSVAR,ID,1,x）
+        Regex regexSysVar = new Regex(@"~SYSVAR,(\d+),1,(\d+)");
+        Match matchSysVar = regexSysVar.Match(message);
+        if (matchSysVar.Success)
+        {
+            string id = matchSysVar.Groups[1].Value;
+            float brightness = float.Parse(matchSysVar.Groups[2].Value);
+
+            //logAction?.Invoke($"[DEBUG] SYSVAR電文を受信: ID={id}, Brightness={brightness}%");
+
+            // additionalData を参照して更新を試みる
+            foreach (var section in additionalData.Keys)
+            {
+                //logAction?.Invoke($"[DEBUG] セクション: {section}");
+
+                // セクション内のデータを走査
+                foreach (var kvp in additionalData[section]) // kvp は KeyValuePair<string, string>
+                {
+                    if (kvp.Value == id)
+                    {
+                        // MainForm のインスタンスを使って2個目のタブを更新
+                        try
+                        {
+                            mainFormInstance?.UpdateLightingStatusTabBrightness(id, brightness);
+                            //logAction?.Invoke($"[INFO] SYSVAR: ID: {id} の照度を {brightness}% に更新しました。");
+                        }
+                        catch (Exception ex)
+                        {
+                            logAction?.Invoke($"[ERROR] SYSVAR処理中にエラーが発生: {ex.Message}");
+                        }
+
+                        return; // 更新が完了したので終了
+                    }
+                }
+            }
+        }
     }
-
 
 
 
@@ -312,6 +342,7 @@ public class TelnetClientHelper
     private async Task WriteCommandAsync(string command)
     {
         await writer.WriteLineAsync(command);
+        //await Task.Delay(50); // 50ms の遅延を追加（必要に応じて調整）
     }
 
     private async Task<string> ReadToBufferAsync()
@@ -357,6 +388,9 @@ public class TelnetClientHelper
                     // ボタン状態確認コマンドの送信
                     int buttonCount = device.Buttons.Count; // ボタンの数を取得
                     await SendButtonStateCheckCommands(device.ID, buttonCount, logAction);
+
+                    // 小さな待機を入れる（必要に応じて調整）
+                    //await Task.Delay(50); // 50ms の遅延を追加
                 }
             }
         }

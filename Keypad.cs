@@ -47,6 +47,20 @@ namespace RoomKeypadManager
 
         private void InitializeKeypad()
         {
+            if (buttonNames.Count == 0)
+            {
+                logAction?.Invoke($"[ERROR] Keypad initialized with no buttons for DeviceID={DeviceID}");
+                return;
+            }
+
+            for (int i = 0; i < buttonNames.Count; i++)
+            {
+                Button button = new Button();
+                buttonControls[i + 1] = button;
+
+                logAction?.Invoke($"[DEBUG] Added ButtonIndex={i + 1}, ButtonName={buttonNames[i]} to DeviceID={DeviceID}");
+            }
+
             // キーパッド全体のレイアウト設定
             FlowLayoutPanel layout = new FlowLayoutPanel
             {
@@ -118,10 +132,19 @@ namespace RoomKeypadManager
 
         private void UpdateButtonBacklight(int buttonIndex, Button button)
         {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => UpdateButtonBacklight(buttonIndex, button)));
+                return;
+            }
+
+            logAction?.Invoke($"[DEBUG] Updating button backlight: DeviceID={DeviceID}, ButtonIndex={buttonIndex}");
+
             if (!isTelnetConnected()) // Telnet未接続の場合は消灯（黒）
             {
                 button.BackColor = Color.Black;
                 button.Text = $"{buttonNames[buttonIndex - 1]}\n(OFF)";
+                logAction?.Invoke("[DEBUG] Telnet未接続: ボタンOFFに設定");
                 return;
             }
 
@@ -132,6 +155,8 @@ namespace RoomKeypadManager
                     ? getActiveBrightness(DeviceID) // アクティブ状態の照度
                     : getInactiveBrightness(DeviceID); // インアクティブ状態の照度
 
+                logAction?.Invoke($"[DEBUG] ButtonIndex={buttonIndex}, isActive={isActive.Value}, Brightness={brightness}");
+
                 if (brightness == 0) // 照度が0の場合は黒
                 {
                     button.BackColor = Color.Black;
@@ -139,7 +164,6 @@ namespace RoomKeypadManager
                 }
                 else
                 {
-                    // 照度に応じて背景色を変更（グレーから白の範囲で変化）
                     int colorValue = Math.Min(255, Math.Max(0, (int)(255 * (brightness / 100.0))));
                     button.BackColor = Color.FromArgb(colorValue, colorValue, colorValue);
                     button.Text = $"{buttonNames[buttonIndex - 1]}\n({brightness}%)";
@@ -147,11 +171,13 @@ namespace RoomKeypadManager
             }
             else
             {
-                // 状態が不明な場合は消灯（黒）
                 button.BackColor = Color.Black;
                 button.Text = $"{buttonNames[buttonIndex - 1]}\n(UNKNOWN)";
+                logAction?.Invoke("[DEBUG] ボタン状態不明: UNKNOWNに設定");
             }
         }
+
+
 
         /// <summary>
         /// 全ボタンのバックライトを更新
@@ -170,12 +196,23 @@ namespace RoomKeypadManager
         /// <param name="buttonIndex">ボタン番号</param>
         public void UpdateButtonState(int buttonIndex)
         {
+            logAction?.Invoke($"[DEBUG] UpdateButtonState called for DeviceID: {DeviceID}, ButtonIndex: {buttonIndex}");
+
             if (buttonControls.ContainsKey(buttonIndex))
             {
                 var button = buttonControls[buttonIndex];
                 UpdateButtonBacklight(buttonIndex, button);
+                logAction?.Invoke($"[INFO] ButtonIndex: {buttonIndex} updated for DeviceID: {DeviceID}");
             }
+            else
+            {
+                logAction?.Invoke($"[WARN] ButtonIndex: {buttonIndex} not found for DeviceID: {DeviceID}");
+            }
+
+
         }
+
+
 
     }
 }

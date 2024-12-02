@@ -56,12 +56,16 @@ public class DeviceData
     /// <param name="isActive">アクティブ状態なら true、インアクティブなら false</param>
     public void SetButtonState(int buttonIndex, bool isActive)
     {
-        if (!buttonStates.ContainsKey(buttonIndex) || buttonStates[buttonIndex] != isActive)
+        if (buttonStates.ContainsKey(buttonIndex) && buttonStates[buttonIndex] == isActive)
         {
-            buttonStates[buttonIndex] = isActive;
-            OnButtonStateChanged(buttonIndex); // ボタン変更イベントを発火
+            // 状態に変更がない場合はスキップ
+            return;
         }
+
+        buttonStates[buttonIndex] = isActive;
+        OnButtonStateChanged(buttonIndex); // 必要な場合のみイベントを発火
     }
+
 
     /// <summary>
     /// ボタンの状態を取得
