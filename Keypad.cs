@@ -72,10 +72,16 @@ namespace RoomKeypadManager
             };
 
             // ボタンを追加
+            int dummy_ct = 0;
             for (int i = 0; i < buttonNames.Count; i++)
             {
                 string buttonName = buttonNames[i];
-                string dColumnValue = i < dColumns.Count ? dColumns[i] : "N/A"; // D列情報が不足する場合に備える
+                if (buttonName.Contains("Dummy"))
+                {
+                    dummy_ct += 1;
+                    continue;
+                }
+                string dColumnValue = i-dummy_ct < dColumns.Count ? dColumns[i-dummy_ct] : "N/A"; // D列情報が不足する場合に備える
                 string dColumnIndex = dColumnValue.Replace("Button ", ""); // "Button "を除去して番号を取得
 
                 Button button = new Button
