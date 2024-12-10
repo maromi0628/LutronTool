@@ -26,25 +26,25 @@ namespace RoomKeypadManager
             InitializeComponent();
             InitializeResponseProcessing();
 
-            if (SelectCsvFile(out string filePath))
-            {
-                // CSVファイルを処理
-                (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(filePath);
+            //if (SelectCsvFile(out string filePath))
+            //{
+            //    // CSVファイルを処理
+            //    (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(filePath);
 
-                // structuredDataを渡してTelnetClientHelperを初期化
-                //telnetClientHelper = new TelnetClientHelper(structuredData);
-                telnetClientHelper = new TelnetClientHelper(this, structuredData, additionalData);
+            //    // structuredDataを渡してTelnetClientHelperを初期化
+            //    //telnetClientHelper = new TelnetClientHelper(structuredData);
+            //    telnetClientHelper = new TelnetClientHelper(this, structuredData, additionalData);
 
-                // デバイス変更の監視を開始
-                MonitorDeviceChanges();
+            //    // デバイス変更の監視を開始
+            //    MonitorDeviceChanges();
 
-                InitializeUI();
-            }
-            else
-            {
-                MessageBox.Show("CSVファイルが選択されませんでした。アプリを終了します。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                this.Close();
-            }
+            //    InitializeUI();
+            //}
+            //else
+            //{
+            //    MessageBox.Show("CSVファイルが選択されませんでした。アプリを終了します。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //    this.Close();
+            //}
 
             // タブコントロールから Lighting Status タブを取得
             TabPage lightingStatusTab = GetLightingStatusTab();
@@ -374,7 +374,21 @@ namespace RoomKeypadManager
                         // CSVデータを再読み込みしてUIを更新
                         (structuredData, additionalData) = CsvProcessor.ProcessCsvFile(selectedFilePath);
                         roomKeySelector.Items.Clear();
+                        // デバイス変更の監視を開始
+                        MonitorDeviceChanges();
                         InitializeUI(); // 再度UIを初期化
+                                        // タブコントロールから Lighting Status タブを取得
+                        TabPage lightingStatusTab = GetLightingStatusTab();
+
+                        // Lighting Status タブを初期化
+                        if (lightingStatusTab != null)
+                        {
+                            InitializeLightingStatusTab(lightingStatusTab);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Lighting Status タブが見つかりませんでした。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
                         MessageBox.Show("CSVファイルが正常に読み込まれました。", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
