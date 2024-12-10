@@ -369,6 +369,12 @@ public class TelnetClientHelper
     public async Task SendBacklightBrightnessCommandsForKeypads(
     Dictionary<string, List<DeviceData>> structuredData, Action<string> logAction)
     {
+        if (structuredData == null || structuredData.Count == 0)
+        {
+            logAction?.Invoke("[WARN] structuredData が空です。コマンドをスキップします。");
+            return;
+        }
+
         foreach (var roomKey in structuredData.Keys)
         {
             foreach (var device in structuredData[roomKey])
