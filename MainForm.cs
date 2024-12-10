@@ -83,12 +83,13 @@ namespace RoomKeypadManager
 
 
         private System.Windows.Forms.Timer responseProcessingTimer;
+        private System.Windows.Forms.Timer LightStatusTimer;
 
         private void InitializeResponseProcessing()
         {
             responseProcessingTimer = new System.Windows.Forms.Timer
             {
-                Interval =100
+                Interval =10
             };
 
             responseProcessingTimer.Tick += (sender, e) =>
@@ -100,6 +101,22 @@ namespace RoomKeypadManager
             };
 
             responseProcessingTimer.Start();
+
+            LightStatusTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 1000
+            };
+            LightStatusTimer.Tick += (sender, e) =>
+            {
+                
+            
+                if (telnetClientHelper != null && isConnected)
+                {
+                    UpdateLightStatus();
+                }
+                
+            };
+            LightStatusTimer.Start();
         }
 
         private void LogKeypadStates()
@@ -164,7 +181,7 @@ namespace RoomKeypadManager
             this.Controls.Add(tabControl);
         }
 
-
+        private DataGridView lightingTable;
         private void InitializeLightingStatusTab(TabPage lightingStatusTab)
         {
             if (additionalData == null || additionalData.Count == 0)
@@ -206,7 +223,7 @@ namespace RoomKeypadManager
             };
 
             // DataGridViewを作成
-            var lightingTable = new DataGridView
+            lightingTable = new DataGridView
             {
                 Dock = DockStyle.Fill,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
@@ -1335,6 +1352,31 @@ namespace RoomKeypadManager
             return false;
         }
 
+        public async Task UpdateLightStatus()
+        {
+            // IDリストを作成
+            List<string> IdList = new List<string>();
+
+            if (lightingTable == null)
+            {
+                return;
+            }
+
+            foreach (DataGridViewRow row in lightingTable.Rows)
+            {
+                if (row.Cells["ColumnID"].Value != null &&
+                    row.Cells["ColumnSection"].Value != null &&
+                    row.Cells["ColumnSection"].Value.ToString() == "Zone Name")
+                {
+                    IdList.Add(row.Cells["ColumnID"].Value.ToString());
+                }
+            }
+
+            
+
+            // メソッドを呼び出し
+            await telnetClientHelper.SendGetLightStatus(IdList);
+        }
 
     }
 

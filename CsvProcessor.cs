@@ -190,6 +190,8 @@ namespace RoomKeypadManager
                 // --- 2週目: 追加データの処理 ---
                 reader.BaseStream.Seek(0, SeekOrigin.Begin); // ファイルの先頭に戻る
                 reader.DiscardBufferedData();
+                bool space_flag = false;
+                bool zone_name_end = false;
 
                 for (int i = 0; i < 6; i++)
                 {
@@ -205,12 +207,37 @@ namespace RoomKeypadManager
                     string aColumn = columns.Length > 0 ? columns[0] : null;
                     string bColumn = columns.Length > 1 ? columns[1] : null;
 
+                    if(aColumn.Contains("Lutron Electronics"))
+                    {
+                        break;
+                    }
+
                     // セクションの切り替え
                     if (aColumn == "Zone Name")
                     {
                         currentSection = "Zone Name";
+                        zone_name_end = true;
                         continue;
                     }
+
+                    if (!zone_name_end)
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(aColumn))
+                    {
+                        space_flag = true;
+                        continue;
+                    }
+
+                    if (space_flag)
+                    {
+                        space_flag = false;
+                        currentSection = aColumn;
+                        continue;
+                    }
+
 
                     if (!string.IsNullOrWhiteSpace(currentSection) && !string.IsNullOrWhiteSpace(aColumn) && !string.IsNullOrWhiteSpace(bColumn))
                     {

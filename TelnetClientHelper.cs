@@ -133,7 +133,7 @@ public class TelnetClientHelper
 
                 if (!string.IsNullOrWhiteSpace(message))
                 {
-                    logAction?.Invoke($"[レスポンス電文] {message}");
+                    //logAction?.Invoke($"[レスポンス電文] {message}");
                     HandleResponseMessage(message, logAction);
                 }
             }
@@ -185,7 +185,7 @@ public class TelnetClientHelper
                 if (device != null)
                 {
                     device.SetButtonState(buttonIndex, isActive);
-                    logAction?.Invoke($"[INFO] ID: {id}, ボタン: {buttonIndex}, 状態: {(isActive ? "アクティブ" : "インアクティブ")}");
+                    //logAction?.Invoke($"[INFO] ID: {id}, ボタン: {buttonIndex}, 状態: {(isActive ? "アクティブ" : "インアクティブ")}");
                     return;
                 }
             }
@@ -194,13 +194,13 @@ public class TelnetClientHelper
         // Null チェック
         if (additionalData == null)
         {
-            logAction?.Invoke("[ERROR] additionalData が初期化されていません。");
+            //logAction?.Invoke("[ERROR] additionalData が初期化されていません。");
             return;
         }
 
         if (mainFormInstance == null)
         {
-            logAction?.Invoke("[ERROR] mainFormInstance が初期化されていません。");
+            //logAction?.Invoke("[ERROR] mainFormInstance が初期化されていません。");
             return;
         }
 
@@ -412,6 +412,16 @@ public class TelnetClientHelper
             await SendCommandAsync(command);
         }
     }
+
+    public async Task SendGetLightStatus(List<string> IdList)
+    {
+        foreach (string id in IdList)
+        {
+            string command = $"?OUTPUT,{id},1";
+            await SendCommandAsync(command);
+        }
+    }
+
 
 
 }
